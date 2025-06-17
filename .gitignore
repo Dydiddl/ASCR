@@ -61,3 +61,23 @@ log/
 # Local configuration
 config.local.yaml
 .env.local
+
+# Word 임시 파일
+~$*.docx
+~$*.doc
+~$*.xlsx
+~$*.xls
+
+# PDF 관련
+*.pdf
+!input/*.pdf
+extracted_chapters/
+
+# 테스트 관련
+.coverage
+htmlcov/
+.pytest_cache/
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
