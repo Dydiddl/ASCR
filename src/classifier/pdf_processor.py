@@ -4,14 +4,20 @@ from pathlib import Path
 import pypdf
 from .content_classifier import ContentClassifier
 from tqdm import tqdm
+import json
+from datetime import datetime
+import re
 
 class PDFProcessor:
     def __init__(self):
         self.classifier = ContentClassifier()
+        self.analysis_log = []
+        self.current_chapter_num = ''  # ex) 제1장
+        self.current_chapter_title = ''  # ex) 적용기준
         
     def process_pdf(self, input_path: str) -> None:
         """PDF 파일을 처리하여 부문별, 장별로 분류합니다."""
-        print(f"\n=== PDF 처리 시작: {input_path} ===")
+        print(f"\n=== PDF 분류(로그 기록) 시작: {input_path} ===")
         
         # 입력 파일 존재 확인
         if not os.path.exists(input_path):
@@ -30,65 +36,74 @@ class PDFProcessor:
                 print(f"총 페이지 수: {total_pages}")
                 
                 # 표지 처리 (첫 페이지)
-                self._save_cover_page(pdf, output_dir)
+                first_page_text = pdf.pages[0].extract_text()
+                first_line = first_page_text.split('\n')[0].strip() if first_page_text else ""
+                self._log_page_analysis([1, "표지", first_line, '', ''])
                 
-                # 장별로 페이지를 모으기 위한 딕셔너리
-                # Key: (부문, 장번호, 장제목), Value: 페이지 번호 리스트
-                chapter_pages = {}
-                current_section = None
-                current_chapter = None
-                
-                # 2페이지부터 끝까지 처리
-                print("\n페이지 분석 및 분류 중...")
+                # 2페이지부터 분류
                 for page_num in tqdm(range(1, total_pages), desc="진행률"):
-                    # 빈 페이지 건너뛰기
-                    if self._is_empty_page(pdf.pages[page_num]):
+                    page = pdf.pages[page_num]
+                    page_text = page.extract_text()
+                    first_line = page_text.split('\n')[0].replace(' ', '') if page_text else ""
+                    search_area = first_line[:10]
+                    if not first_line:
+                        self._log_page_analysis([page_num+1, "빈페이지", '', '', ''])
                         continue
-                        
-                    # 페이지 텍스트 추출
-                    page_text = pdf.pages[page_num].extract_text()
-                    chapter_info, section_info = self.classifier.analyze_header(page_text)
-                    
-                    # 부문 정보 업데이트
-                    if section_info:
-                        current_section = section_info
-                        
-                    # 장 정보 업데이트
-                    if chapter_info:
-                        current_chapter = chapter_info
-                        
-                    # 현재 장이 있으면 페이지 추가
-                    if current_chapter and current_section:
-                        key = (current_section, current_chapter['number'], current_chapter['title'])
-                        if key not in chapter_pages:
-                            chapter_pages[key] = []
-                        chapter_pages[key].append(page_num)
-                        
-                # 모든 장을 저장
-                print("\n파일 저장 중...")
-                for (section, chapter_num, chapter_title), pages in chapter_pages.items():
-                    section_dir = output_dir / section
-                    section_dir.mkdir(exist_ok=True)
-                    
-                    filename = f"제{chapter_num}장_{self._sanitize_filename(chapter_title)}.pdf"
-                    output_path = section_dir / filename
-                    
-                    try:
-                        writer = pypdf.PdfWriter()
-                        for page_num in pages:
-                            writer.add_page(pdf.pages[page_num])
-                            
-                        with open(output_path, 'wb') as outfile:
-                            writer.write(outfile)
-                            
-                    except Exception as e:
-                        print(f"\n오류: {filename} 저장 중 오류 발생 - {str(e)}")
-                    
+                    # 장 패턴: 제X장 제목 숫자 (앞 10글자 내에서만)
+                    m = re.search(r'(제\d+장)\s*([가-힣A-Za-z0-9]+)\s*(\d+)', search_area)
+                    if m:
+                        self.current_chapter_num = m.group(1)
+                        self.current_chapter_title = m.group(2)
+                        self._log_page_analysis([page_num+1, m.group(1), m.group(2), '', m.group(3)])
+                        continue
+                    # 부문 패턴: 숫자+부문 (앞 10글자 내에서만)
+                    m = re.search(r'(\d+)\s*([가-힣]+부문)', search_area)
+                    if m:
+                        chapter_num = self.current_chapter_num if self.current_chapter_num else ''
+                        chapter_title = self.current_chapter_title if self.current_chapter_title else ''
+                        self._log_page_analysis([page_num+1, chapter_num, chapter_title, m.group(2), m.group(1)])
+                        continue
+                    # 목차 패턴: 숫자+목차 또는 목차+숫자 (띄어쓰기 무시)
+                    if re.search(r'(\d+목차|목차\d+)', search_area):
+                        self._log_page_analysis([page_num+1, "목차", first_line, '', ''])
+                        continue
+                    # 중간 표지(내용 있음)
+                    # 다음 페이지의 부문명 추출
+                    next_bumun = ''
+                    if page_num + 1 < total_pages:
+                        next_page = pdf.pages[page_num + 1]
+                        next_text = next_page.extract_text()
+                        next_first_line = next_text.split('\n')[0].replace(' ', '') if next_text else ""
+                        next_search_area = next_first_line[:10]
+                        m_next = re.search(r'(\d+)\s*([가-힣]+부문)', next_search_area)
+                        if m_next:
+                            next_bumun = m_next.group(2)
+                    self._log_page_analysis([page_num+1, "중간표지", next_bumun, ''])
+                
+                # 분석 로그 저장
+                self._save_analysis_log(output_dir)
+                
         except Exception as e:
             print(f"\n오류가 발생했습니다: {str(e)}")
             return
             
-        print("\n=== PDF 분류가 완료되었습니다 ===")
+        print("\n=== PDF 분류(로그 기록) 완료 ===")
+        
+    def _log_page_analysis(self, log_entry) -> None:
+        """페이지 분석 결과를 로그에 추가합니다."""
+        self.analysis_log.append(log_entry)
+        
+    def _save_analysis_log(self, output_dir: Path) -> None:
+        """분석 로그를 파일로 저장합니다."""
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        log_file = output_dir / f"analysis_log_{timestamp}.txt"
+        
+        with open(log_file, 'w', encoding='utf-8') as f:
+            f.write("=== PDF 페이지 분석 로그 ===\n\n")
+            for entry in self.analysis_log:
+                f.write(str(entry) + "\n")
+                
+        print(f"\n분석 로그가 저장되었습니다: {log_file}")
         
     def _save_cover_page(self, pdf: pypdf.PdfReader, output_dir: Path) -> None:
         """표지 페이지를 저장합니다."""
@@ -107,7 +122,6 @@ class PDFProcessor:
         
     def _sanitize_filename(self, filename: str) -> str:
         """파일 이름에서 사용할 수 없는 문자를 제거합니다."""
-        import re
         sanitized = re.sub(r'[^\w\s가-힣]', '', filename)
         sanitized = re.sub(r'\s+', ' ', sanitized)
         sanitized = sanitized.strip()
