@@ -3,6 +3,7 @@ from pathlib import Path
 from src.converter.extract_PDF_pages import extract_pages_interactive
 from src.classifier.pdf_processor import PDFProcessor
 from src.utils.pdf_merger import merge_chapter_pdfs
+from src.utils.pdf_to_lookup_table import PDFToLookupTable
 
 # 설정 모듈 import
 try:
@@ -100,6 +101,80 @@ def show_project_info():
     else:
         print("\n입력 디렉토리에 PDF 파일이 없습니다.")
 
+def convert_debug_to_lookup_table():
+    """PDF 디버그 파일을 룩업테이블로 변환하는 기능을 실행합니다."""
+    print("\n=== PDF 디버그 파일을 룩업테이블로 변환 ===")
+    
+    # output 폴더의 디버그 파일 목록 확인
+    output_dir = Path("output")
+    if not output_dir.exists():
+        print("output 폴더가 존재하지 않습니다.")
+        return
+    
+    debug_files = list(output_dir.glob("pdf_debug_*.txt"))
+    if not debug_files:
+        print("output 폴더에 PDF 디버그 파일이 없습니다.")
+        print("먼저 PDF 디버그 파일을 생성해주세요.")
+        return
+    
+    print("사용 가능한 디버그 파일:")
+    for i, debug_file in enumerate(debug_files, 1):
+        print(f"  {i}. {debug_file.name}")
+    
+    try:
+        choice = int(input(f"\n변환할 디버그 파일을 선택하세요 (1-{len(debug_files)}): ")) - 1
+        if 0 <= choice < len(debug_files):
+            debug_file_path = str(debug_files[choice])
+            print(f"\n선택된 파일: {debug_file_path}")
+            
+            # 룩업테이블 생성
+            converter = PDFToLookupTable()
+            output_path = converter.process_debug_file(debug_file_path)
+            print(f"\n룩업테이블이 성공적으로 생성되었습니다: {output_path}")
+        else:
+            print("잘못된 선택입니다.")
+    except ValueError:
+        print("숫자를 입력해주세요.")
+    except Exception as e:
+        print(f"오류가 발생했습니다: {str(e)}")
+
+def convert_lookup_table_to_config():
+    """룩업테이블을 매핑 설정으로 변환하는 기능을 실행합니다."""
+    print("\n=== 룩업테이블을 매핑 설정으로 변환 ===")
+    
+    # output 폴더의 룩업테이블 파일 목록 확인
+    output_dir = Path("output")
+    if not output_dir.exists():
+        print("output 폴더가 존재하지 않습니다.")
+        return
+    
+    lookup_files = list(output_dir.glob("lookup_table_*.csv"))
+    if not lookup_files:
+        print("output 폴더에 룩업테이블 파일이 없습니다.")
+        print("먼저 PDF 디버그 파일을 룩업테이블로 변환해주세요.")
+        return
+    
+    print("사용 가능한 룩업테이블 파일:")
+    for i, lookup_file in enumerate(lookup_files, 1):
+        print(f"  {i}. {lookup_file.name}")
+    
+    try:
+        choice = int(input(f"\n변환할 룩업테이블 파일을 선택하세요 (1-{len(lookup_files)}): ")) - 1
+        if 0 <= choice < len(lookup_files):
+            lookup_file_path = str(lookup_files[choice])
+            print(f"\n선택된 파일: {lookup_file_path}")
+            
+            # 매핑 설정 생성
+            converter = PDFToLookupTable()
+            output_path = converter.process_lookup_table_to_config(lookup_file_path)
+            print(f"\n매핑 설정이 성공적으로 생성되었습니다: {output_path}")
+        else:
+            print("잘못된 선택입니다.")
+    except ValueError:
+        print("숫자를 입력해주세요.")
+    except Exception as e:
+        print(f"오류가 발생했습니다: {str(e)}")
+
 def main():
     while True:
         print("\n=== PDF 처리 도구 ===")
@@ -107,9 +182,11 @@ def main():
         print("2. 페이지 지정 분리")
         print("3. PDF 파일 병합")
         print("4. 프로젝트 정보 보기")
-        print("5. 종료")
+        print("5. PDF 디버그 파일을 룩업테이블로 변환")
+        print("6. 룩업테이블을 매핑 설정으로 변환")
+        print("7. 종료")
         
-        choice = input("\n작업 번호를 입력하세요 (1-5): ")
+        choice = input("\n작업 번호를 입력하세요 (1-7): ")
         
         if choice == "1":
             process_auto_classification()
@@ -120,10 +197,14 @@ def main():
         elif choice == "4":
             show_project_info()
         elif choice == "5":
+            convert_debug_to_lookup_table()
+        elif choice == "6":
+            convert_lookup_table_to_config()
+        elif choice == "7":
             print("\n프로그램을 종료합니다.")
             break
         else:
-            print("\n잘못된 선택입니다. 1-5 중에서 선택해주세요.")
+            print("\n잘못된 선택입니다. 1-7 중에서 선택해주세요.")
 
 if __name__ == "__main__":
     main()
