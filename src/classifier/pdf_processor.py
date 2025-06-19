@@ -3,14 +3,16 @@ import os
 from pathlib import Path
 import pypdf
 from .content_classifier import ContentClassifier
+from ..utils.lookup_table import LookupTable
 from tqdm import tqdm
 import json
 from datetime import datetime
 import re
 
 class PDFProcessor:
-    def __init__(self):
+    def __init__(self, use_lookup_table: bool = True):
         self.classifier = ContentClassifier()
+        self.lookup_table = LookupTable() if use_lookup_table else None
         self.analysis_log = []
         self.current_chapter_num = ''  # ex) 제1장
         self.current_chapter_title = ''  # ex) 적용기준
@@ -49,6 +51,15 @@ class PDFProcessor:
                     if not first_line:
                         self._log_page_analysis([page_num+1, "빈페이지", '', '', ''])
                         continue
+                    
+                    # 룩업 테이블을 사용한 분류
+                    if self.lookup_table:
+                        chapter, section, title = self.lookup_table.classify_text(first_line)
+                        if chapter != "0" or section != "00":
+                            self._log_page_analysis([page_num+1, f"제{chapter}장", title, f"{section}부문", section])
+                            continue
+                    
+                    # 기존 정규식 패턴 분류 (룩업 테이블에서 매칭되지 않은 경우)
                     # 장 패턴: 제X장 제목 숫자 (앞 10글자 내에서만)
                     m = re.search(r'(제\d+장)\s*([가-힣A-Za-z0-9]+)\s*(\d+)', search_area)
                     if m:
@@ -88,6 +99,19 @@ class PDFProcessor:
             return
             
         print("\n=== PDF 분류(로그 기록) 완료 ===")
+    
+    def add_custom_mapping(self, rule_type: str, pattern: str, chapter: str = "", section: str = "", title: str = ""):
+        """사용자 정의 매핑 규칙을 추가합니다."""
+        if self.lookup_table:
+            self.lookup_table.add_mapping_rule(rule_type, pattern, chapter, section, title)
+        else:
+            print("룩업 테이블이 비활성화되어 있습니다.")
+    
+    def get_mapping_rules(self) -> Dict:
+        """현재 매핑 규칙을 반환합니다."""
+        if self.lookup_table:
+            return self.lookup_table.get_all_patterns()
+        return {}
         
     def _log_page_analysis(self, log_entry) -> None:
         """페이지 분석 결과를 로그에 추가합니다."""

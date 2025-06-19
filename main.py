@@ -4,9 +4,48 @@ from src.converter.extract_PDF_pages import extract_pages_interactive
 from src.classifier.pdf_processor import PDFProcessor
 from src.utils.pdf_merger import merge_chapter_pdfs
 
+# 설정 모듈 import
+try:
+    from config.settings import (
+        INPUT_DIR, 
+        OUTPUT_DIR, 
+        ensure_directories, 
+        get_input_files,
+        print_settings_info,
+        check_environment
+    )
+except ImportError:
+    # 설정 모듈이 없는 경우 기본 경로 사용
+    INPUT_DIR = Path("input")
+    OUTPUT_DIR = Path("output")
+    
+    def ensure_directories():
+        INPUT_DIR.mkdir(exist_ok=True)
+        OUTPUT_DIR.mkdir(exist_ok=True)
+    
+    def get_input_files(extension=".pdf"):
+        return list(INPUT_DIR.glob(f"*{extension}"))
+    
+    def print_settings_info():
+        print("설정 모듈을 사용할 수 없습니다.")
+    
+    def check_environment():
+        return {"basic_mode": True}
+
 def process_auto_classification():
     """자동 분류 기능을 실행합니다."""
     print("\n=== PDF 자동 분류 시작 ===")
+    
+    # 환경 확인
+    print("환경 확인 중...")
+    ensure_directories()
+    environment_checks = check_environment()
+    
+    # 환경 문제가 있는지 확인
+    failed_checks = [name for name, status in environment_checks.items() if not status]
+    if failed_checks:
+        print(f"경고: 다음 환경 설정에 문제가 있습니다: {failed_checks}")
+    
     print("이 기능은 다음과 같이 동작합니다:")
     print("1. 표지는 '표지.pdf'로 저장됩니다.")
     print("2. 각 장은 해당 부문 폴더 아래에 저장됩니다.")
@@ -17,8 +56,20 @@ def process_auto_classification():
     # 입력 PDF 파일 경로 받기
     input_pdf = input("분류할 PDF 파일의 경로를 입력하세요: ").strip()
     
+    # 상대 경로인 경우 입력 디렉토리 기준으로 처리
+    if not os.path.isabs(input_pdf):
+        input_pdf = str(INPUT_DIR / input_pdf)
+    
     if not os.path.exists(input_pdf):
-        print("오류: 파일을 찾을 수 없습니다.")
+        print(f"오류: 파일을 찾을 수 없습니다: {input_pdf}")
+        print(f"입력 디렉토리: {INPUT_DIR}")
+        
+        # 입력 디렉토리의 PDF 파일 목록 표시
+        pdf_files = get_input_files()
+        if pdf_files:
+            print("사용 가능한 PDF 파일들:")
+            for i, file in enumerate(pdf_files, 1):
+                print(f"  {i}. {file.name}")
         return
         
     try:
@@ -30,10 +81,24 @@ def process_auto_classification():
         merge_chapter_pdfs()
         
         print("\n=== PDF 분류가 완료되었습니다 ===")
-        print(f"결과물은 {Path.cwd()}/output 디렉토리에 저장되었습니다.")
+        print(f"결과물은 {OUTPUT_DIR} 디렉토리에 저장되었습니다.")
         
     except Exception as e:
         print(f"\n오류가 발생했습니다: {str(e)}")
+
+def show_project_info():
+    """프로젝트 정보를 표시합니다."""
+    print("\n=== 프로젝트 정보 ===")
+    print_settings_info()
+    
+    # 입력 파일 목록
+    pdf_files = get_input_files()
+    if pdf_files:
+        print(f"\n입력 디렉토리의 PDF 파일 ({len(pdf_files)}개):")
+        for file in pdf_files:
+            print(f"  - {file.name}")
+    else:
+        print("\n입력 디렉토리에 PDF 파일이 없습니다.")
 
 def main():
     while True:
@@ -41,9 +106,10 @@ def main():
         print("1. 자동 분류 (부문별, 장별 자동 분류)")
         print("2. 페이지 지정 분리")
         print("3. PDF 파일 병합")
-        print("4. 종료")
+        print("4. 프로젝트 정보 보기")
+        print("5. 종료")
         
-        choice = input("\n작업 번호를 입력하세요 (1-4): ")
+        choice = input("\n작업 번호를 입력하세요 (1-5): ")
         
         if choice == "1":
             process_auto_classification()
@@ -52,10 +118,12 @@ def main():
         elif choice == "3":
             merge_chapter_pdfs()
         elif choice == "4":
+            show_project_info()
+        elif choice == "5":
             print("\n프로그램을 종료합니다.")
             break
         else:
-            print("\n잘못된 선택입니다. 1-4 중에서 선택해주세요.")
+            print("\n잘못된 선택입니다. 1-5 중에서 선택해주세요.")
 
 if __name__ == "__main__":
     main()

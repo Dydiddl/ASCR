@@ -1,0 +1,40 @@
+{
+  "chapter_patterns": [
+    {"pattern": "제1장", "chapter": "1", "title": "총칙"},
+    {"pattern": "제2장", "chapter": "2", "title": "일반사항"},
+    {"pattern": "제3장", "chapter": "3", "title": "토공"},
+    {"pattern": "제4장", "chapter": "4", "title": "콘크리트"},
+    {"pattern": "제5장", "chapter": "5", "title": "철근콘크리트"},
+    {"pattern": "제6장", "chapter": "6", "title": "철골"},
+    {"pattern": "제7장", "chapter": "7", "title": "목공"},
+    {"pattern": "제8장", "chapter": "8", "title": "조적"},
+    {"pattern": "제9장", "chapter": "9", "title": "도장"},
+    {"pattern": "제10장", "chapter": "10", "title": "지붕"},
+    {"pattern": "제11장", "chapter": "11", "title": "창호"},
+    {"pattern": "제12장", "chapter": "12", "title": "미장"},
+    {"pattern": "제13장", "chapter": "13", "title": "타일"},
+    {"pattern": "제14장", "chapter": "14", "title": "석공"},
+    {"pattern": "제15장", "chapter": "15", "title": "방수"},
+    {"pattern": "제16장", "chapter": "16", "title": "창호"},
+    {"pattern": "제17장", "chapter": "17", "title": "철물"},
+    {"pattern": "제18장", "chapter": "18", "title": "가설"},
+    {"pattern": "제19장", "chapter": "19", "title": "조경"},
+    {"pattern": "제20장", "chapter": "20", "title": "기타"}
+  ],
+  "section_patterns": [
+    {"pattern": "01부문", "section": "01", "title": "준비공사"},
+    {"pattern": "02부문", "section": "02", "title": "토공사"},
+    {"pattern": "03부문", "section": "03", "title": "기초공사"},
+    {"pattern": "04부문", "section": "04", "title": "구조공사"},
+    {"pattern": "05부문", "section": "05", "title": "마감공사"},
+    {"pattern": "06부문", "section": "06", "title": "설비공사"},
+    {"pattern": "07부문", "section": "07", "title": "전기공사"},
+    {"pattern": "08부문", "section": "08", "title": "소방공사"},
+    {"pattern": "09부문", "section": "09", "title": "가설공사"},
+    {"pattern": "10부문", "section": "10", "title": "기타공사"}
+  ],
+  "special_cases": {
+    "첫페이지": {"chapter": "0", "section": "00", "title": "목차"},
+    "부록": {"chapter": "99", "section": "99", "title": "부록"}
+  }
+} 
