@@ -1,0 +1,1305 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# ASCR Development Workflow & Best Practices
+
+## 🚀 Development Environment Setup
+
+### 1. Virtual Environment (MANDATORY)
+```bash
+# ALWAYS use virtual environment
+python -m venv venv
+source venv/bin/activate  # Mac/Linux
+venv\Scripts\activate     # Windows
+pip install -r requirements.txt
+```
+
+### 2. Cross-Platform Environment Setup
+```bash
+# Windows
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+
+# macOS/Linux
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Verify platform compatibility
+python -c "import platform; print(f'Platform: {platform.system()}')"
+```
+
+### 3. Project Structure Validation
+Before starting development, verify:
+- [ ] All directories exist: `input/`, `output/`, `config/`, `logs/`, `temp/`
+- [ ] Configuration files are present: [config/settings.py](mdc:config/settings.py)
+- [ ] Dependencies are installed with exact versions
+- [ ] Cross-platform compatibility tested on target platforms
+
+## 🔧 Development Workflow
+
+### 1. Feature Development Pattern
+```python
+# 1. Start with configuration
+from config.settings import INPUT_DIR, OUTPUT_DIR, ensure_directories
+
+# 2. Validate environment
+ensure_directories()
+environment_checks = check_environment()
+
+# 3. Implement core logic with error handling
+def new_feature(input_path: str) -> bool:
+    """새로운 기능 구현"""
+    try:
+        # Input validation
+        if not Path(input_path).exists():
+            print(f"오류: 입력 파일이 존재하지 않습니다: {input_path}")
+            return False
+        
+        # Main logic
+        result = process_data(input_path)
+        
+        # Output handling
+        save_results(result)
+        return True
+        
+    except Exception as e:
+        print(f"오류: 기능 실행 중 오류 발생: {e}")
+        return False
+```
+
+### 2. Testing Pattern
+```python
+# ALWAYS test with Korean content
+test_pdf_path = "input/test_korean_document.pdf"
+test_config = {
+    "encoding": "utf-8",
+    "language": "kor+eng"
+}
+
+# Test error conditions
+def test_error_scenarios():
+    # Test with non-existent file
+    result = process_pdf("non_existent.pdf")
+    assert result is False
+    
+    # Test with invalid PDF
+    result = process_pdf("invalid.pdf")
+    assert result is False
+```
+
+### 3. Document Analysis Workflow (MANDATORY)
+```python
+class DocumentAnalysisWorkflow:
+    """문서 분석 워크플로우 - 반드시 사용"""
+    
+    def __init__(self, file_path: Path):
+        self.file_path = file_path
+        self.analyzer = DocumentAnalyzer(file_path)
+        self.searcher = None
+        self.results = {}
+    
+    def execute_analysis(self) -> Dict[str, Any]:
+        """문서 분석 실행"""
+        try:
+            # 1단계: 파일 검증
+            if not self._validate_file():
+                return {"error": "파일 검증 실패"}
+            
+            # 2단계: 기본 정보 수집
+            self.results["file_info"] = self._collect_file_info()
+            
+            # 3단계: 내용 로드
+            content = self._load_content()
+            if not content:
+                return {"error": "내용 로드 실패"}
+            
+            # 4단계: 구조 분석
+            self.results["structure"] = self._analyze_structure(content)
+            
+            # 5단계: 패턴 검색
+            self.results["patterns"] = self._find_patterns(content)
+            
+            # 6단계: 검증
+            self.results["validation"] = self._validate_results()
+            
+            # 7단계: 권장사항 생성
+            self.results["recommendations"] = self._generate_recommendations()
+            
+            return self.results
+            
+        except Exception as e:
+            return {"error": f"분석 중 오류 발생: {e}"}
+    
+    def _validate_file(self) -> bool:
+        """파일 검증"""
+        if not self.file_path.exists():
+            print(f"오류: 파일이 존재하지 않습니다: {self.file_path}")
+            return False
+        
+        if self.file_path.stat().st_size == 0:
+            print(f"오류: 빈 파일입니다: {self.file_path}")
+            return False
+        
+        return True
+    
+    def _collect_file_info(self) -> Dict[str, Any]:
+        """파일 정보 수집"""
+        return {
+            "name": self.file_path.name,
+            "size": self.file_path.stat().st_size,
+            "type": self.file_path.suffix.lower(),
+            "modified": self.file_path.stat().st_mtime
+        }
+    
+    def _load_content(self) -> str:
+        """내용 로드"""
+        try:
+            with open(self.file_path, 'r', encoding='utf-8') as f:
+                return f.read()
+        except UnicodeDecodeError:
+            # 바이너리 파일인 경우
+            return "[바이너리 파일]"
+        except Exception as e:
+            print(f"내용 로드 실패: {e}")
+            return ""
+    
+    def _analyze_structure(self, content: str) -> Dict[str, Any]:
+        """구조 분석"""
+        return self.analyzer.analyze_document_structure()
+    
+    def _find_patterns(self, content: str) -> Dict[str, List[str]]:
+        """패턴 검색"""
+        self.searcher = ContentSearcher(content)
+        search_terms = ["부문", "장", "절", "페이지"]
+        return self.searcher.search_with_validation(search_terms)
+    
+    def _validate_results(self) -> Dict[str, bool]:
+        """결과 검증"""
+        validation = {
+            "file_valid": True,
+            "content_loaded": bool(self.results.get("file_info")),
+            "structure_found": bool(self.results.get("structure")),
+            "patterns_found": bool(self.results.get("patterns"))
+        }
+        return validation
+    
+    def _generate_recommendations(self) -> List[str]:
+        """권장사항 생성"""
+        recommendations = []
+        
+        if not self.results.get("structure"):
+            recommendations.append("문서 구조를 더 자세히 분석하세요")
+        
+        if not self.results.get("patterns"):
+            recommendations.append("패턴 검색을 확장하세요")
+        
+        if self.results.get("file_info", {}).get("size", 0) > 1000000:
+            recommendations.append("대용량 파일이므로 청크 단위로 처리하세요")
+        
+        return recommendations
+```
+
+### 4. Table of Contents Tree Structure Development Workflow (MANDATORY)
+```python
+class TableOfContentsTreeWorkflow:
+    """목차 트리 구조 개발 워크플로우 - 반드시 사용"""
+    
+    def __init__(self, pdf_path: Path):
+        self.pdf_path = pdf_path
+        self.extractor = PDFTextExtractor()
+        self.toc_generator = TableOfContentsGenerator()
+        self.results = {}
+    
+    def execute_toc_tree_generation(self) -> Dict[str, Any]:
+        """목차 트리 구조 생성 실행"""
+        try:
+            # 1단계: PDF 텍스트 추출
+            extracted_content = self._extract_pdf_content()
+            if not extracted_content:
+                return {"error": "PDF 텍스트 추출 실패"}
+            
+            # 2단계: 실제 PDF 추출 샘플을 기반으로, 장 번호와 제목이 분리된 
+            #        케이스를 반드시 포함하여 테스트한다.
+            toc_structure = self._analyze_toc_structure(extracted_content)
+            
+            # 3단계: 장 번호와 제목 연결 검증
+            validation_result = self._validate_chapter_title_connection(toc_structure)
+            
+            # 4단계: 트리 구조 생성
+            tree_structure = self._generate_tree_structure(toc_structure)
+            
+            # 5단계: 자동화된 결과 리포트에서 장 번호와 제목이 누락 없이 
+            #        모두 포함되는지 검증한다.
+            report = self._generate_validation_report(tree_structure)
+            
+            # 6단계: 문제 발생 시, 데이터 패턴 분석 → 코드/룰/테스트 보완 
+            #        → 재검증의 사이클을 반복한다.
+            if not self._validate_final_output(tree_structure):
+                return self._handle_validation_failure(tree_structure)
+            
+            return {
+                "toc_structure": toc_structure,
+                "tree_structure": tree_structure,
+                "validation": validation_result,
+                "report": report,
+                "success": True
+            }
+            
+        except Exception as e:
+            return {"error": f"목차 트리 생성 중 오류 발생: {e}"}
+    
+    def _extract_pdf_content(self) -> str:
+        """PDF 텍스트 추출"""
+        try:
+            return self.extractor.extract_text(self.pdf_path)
+        except Exception as e:
+            print(f"PDF 추출 실패: {e}")
+            return ""
+    
+    def _analyze_toc_structure(self, content: str) -> Dict[str, Any]:
+        """목차 구조 분석"""
+        return self.toc_generator.parse_toc_tree(content)
+    
+    def _validate_chapter_title_connection(self, toc_structure: Dict) -> Dict[str, bool]:
+        """장 번호와 제목 연결 검증"""
+        validation = {
+            "all_chapters_have_titles": True,
+            "no_empty_titles": True,
+            "proper_format": True
+        }
+        
+        for chapter_key, chapter_data in toc_structure.items():
+            if not chapter_data.get("title"):
+                validation["all_chapters_have_titles"] = False
+                validation["no_empty_titles"] = False
+            
+            if not chapter_data.get("full_title"):
+                validation["proper_format"] = False
+        
+        return validation
+    
+    def _generate_tree_structure(self, toc_structure: Dict) -> Dict[str, Any]:
+        """트리 구조 생성"""
+        tree = {}
+        
+        for chapter_key, chapter_data in toc_structure.items():
+            if chapter_data.get("full_title"):
+                tree[chapter_key] = {
+                    "title": chapter_data["full_title"],
+                    "page": chapter_data["page"],
+                    "children": []
+                }
+        
+        return tree
+    
+    def _generate_validation_report(self, tree_structure: Dict) -> str:
+        """검증 리포트 생성"""
+        report = "목차 트리 구조 검증 리포트\n"
+        report += "=" * 50 + "\n"
+        
+        for chapter_key, chapter_data in tree_structure.items():
+            report += f"장: {chapter_data['title']}\n"
+            report += f"페이지: {chapter_data['page']}\n"
+            report += f"제목 포함: {'예' if chapter_data['title'] else '아니오'}\n"
+            report += "-" * 30 + "\n"
+        
+        return report
+    
+    def _validate_final_output(self, tree_structure: Dict) -> bool:
+        """최종 출력 검증"""
+        for chapter_data in tree_structure.values():
+            if not chapter_data.get("title") or "제" not in chapter_data["title"]:
+                return False
+        return True
+    
+    def _handle_validation_failure(self, tree_structure: Dict) -> Dict[str, Any]:
+        """검증 실패 처리"""
+        return {
+            "error": "목차 트리 구조 검증 실패",
+            "tree_structure": tree_structure,
+            "recommendations": [
+                "장 번호와 제목이 올바르게 연결되었는지 확인하세요",
+                "데이터 패턴을 다시 분석하세요",
+                "코드 로직을 검토하고 수정하세요"
+            ]
+        }
+```
+
+## 🚨 CRITICAL DOCUMENT ANALYSIS ERROR PREVENTION WORKFLOW (MANDATORY - NEW)
+
+### 1. Pre-Analysis Checklist (MANDATORY)
+```python
+def pre_analysis_checklist(file_path: Path) -> Dict[str, bool]:
+    """분석 전 체크리스트 - 반드시 실행"""
+    checklist = {
+        "file_exists": False,
+        "file_readable": False,
+        "file_not_empty": False,
+        "encoding_supported": False,
+        "content_contains_korean": False,
+        "ready_for_analysis": False
+    }
+    
+    try:
+        # 1. 파일 존재 확인
+        if file_path.exists():
+            checklist["file_exists"] = True
+        
+        # 2. 파일 읽기 가능 확인
+        if file_path.is_file():
+            checklist["file_readable"] = True
+        
+        # 3. 파일 크기 확인
+        if file_path.stat().st_size > 0:
+            checklist["file_not_empty"] = True
+        
+        # 4. 인코딩 지원 확인
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read(1000)
+                checklist["encoding_supported"] = True
+                
+                # 5. 한국어 내용 포함 확인
+                if any('\u3131' <= char <= '\u318E' or '\uAC00' <= char <= '\uD7A3' for char in content):
+                    checklist["content_contains_korean"] = True
+        except UnicodeDecodeError:
+            pass
+        
+        # 6. 분석 준비 완료 확인
+        checklist["ready_for_analysis"] = all([
+            checklist["file_exists"],
+            checklist["file_readable"],
+            checklist["file_not_empty"],
+            checklist["encoding_supported"],
+            checklist["content_contains_korean"]
+        ])
+                
+    except Exception as e:
+        print(f"체크리스트 실행 중 오류: {e}")
+    
+    return checklist
+```
+
+### 2. Section Validation Workflow (MANDATORY)
+```python
+def validate_all_sections(content: str) -> Dict[str, Any]:
+    """모든 부문 검증 - 반드시 실행"""
+    required_sections = ["공통부문", "토목부문", "건축부문", "기계설비부문", "유지관리부문"]
+    validation_result = {
+        "all_sections_found": True,
+        "section_details": {},
+        "missing_sections": [],
+        "section_order": [],
+        "validation_passed": False
+    }
+    
+    # 각 부문 검색 및 상세 정보 수집
+    for section in required_sections:
+        section_info = {
+            "found": False,
+            "position": -1,
+            "line_number": -1,
+            "context": ""
+        }
+        
+        # 부문 검색
+        pos = content.find(section)
+        if pos != -1:
+            section_info["found"] = True
+            section_info["position"] = pos
+            
+            # 줄 번호 계산
+            lines_before = content[:pos].count('\n')
+            section_info["line_number"] = lines_before + 1
+            
+            # 컨텍스트 추출 (앞뒤 100자)
+            start = max(0, pos - 100)
+            end = min(len(content), pos + len(section) + 100)
+            section_info["context"] = content[start:end]
+            
+            validation_result["section_details"][section] = section_info
+        else:
+            validation_result["missing_sections"].append(section)
+            validation_result["all_sections_found"] = False
+    
+    # 부문 순서 결정
+    found_sections = [(section, info["position"]) for section, info in validation_result["section_details"].items()]
+    found_sections.sort(key=lambda x: x[1])
+    validation_result["section_order"] = [section for section, _ in found_sections]
+    
+    # 검증 통과 여부
+    validation_result["validation_passed"] = validation_result["all_sections_found"]
+    
+    return validation_result
+```
+
+### 3. Analysis Report Generation Workflow (MANDATORY)
+```python
+def generate_validated_analysis_report(file_path: Path, analysis_results: Dict[str, Any], 
+                                     validation_results: Dict[str, Any]) -> str:
+    """검증된 분석 보고서 생성 - 반드시 사용"""
+    
+    # 1. 기본 보고서 생성
+    report = f"""# 📋 PDF 구조 분석 보고서 (검증됨)
+
+## 🎯 분석 개요
+- **파일명**: {file_path.name}
+- **분석 시간**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+- **검증 상태**: {'✅ 통과' if validation_results.get('validation_passed', False) else '❌ 실패'}
+
+## 🏗️ 문서 구조 분석
+"""
+    
+    # 2. 부문별 상세 정보 추가
+    section_details = validation_results.get("section_details", {})
+    for section_name, section_info in section_details.items():
+        if section_info["found"]:
+            report += f"""
+### {section_name}
+- **위치**: {section_info['line_number']}번째 줄
+- **컨텍스트**: {section_info['context'][:200]}...
+"""
+    
+    # 3. 누락된 부문 경고
+    missing_sections = validation_results.get("missing_sections", [])
+    if missing_sections:
+        report += f"""
+## ⚠️ 누락된 부문
+다음 부문이 문서에서 찾을 수 없습니다:
+{chr(10).join(f'- {section}' for section in missing_sections)}
+
+**권장사항**: 전체 문서를 다시 검토하여 누락된 부문을 확인하세요.
+"""
+    
+    # 4. 검증 결과 요약
+    report += f"""
+## ✅ 검증 결과
+- **모든 부문 발견**: {'예' if validation_results.get('all_sections_found', False) else '아니오'}
+- **부문 순서**: {' → '.join(validation_results.get('section_order', []))}
+- **분석 신뢰도**: {analysis_results.get('analysis_confidence', 0):.1f}%
+
+## 💡 권장사항
+"""
+    
+    if validation_results.get("validation_passed", False):
+        report += "- ✅ 분석이 성공적으로 완료되었습니다.\n"
+    else:
+        report += "- 🔄 누락된 부문을 확인하고 재분석을 수행하세요.\n"
+        report += "- 📖 문서의 전체 구조를 다시 검토하세요.\n"
+        report += "- 🔍 부문 제목의 정확한 표기를 확인하세요.\n"
+    
+    return report
+```
+
+### 4. Error Prevention Workflow (MANDATORY)
+```python
+def execute_error_prevention_workflow(file_path: Path) -> Dict[str, Any]:
+    """오류 방지 워크플로우 - 반드시 사용"""
+    try:
+        # 1단계: 사전 체크리스트
+        checklist = pre_analysis_checklist(file_path)
+        if not checklist["ready_for_analysis"]:
+            return {
+                "error": "파일이 분석 준비가 되지 않았습니다",
+                "checklist": checklist,
+                "is_valid": False
+            }
+        
+        # 2단계: 파일 내용 로드
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # 3단계: 부문 검증
+        validation_results = validate_all_sections(content)
+        
+        # 4단계: 기본 분석 수행
+        analyzer = DocumentAnalyzer(file_path)
+        analysis_results = analyzer.analyze_document_structure()
+        
+        # 5단계: 검증된 보고서 생성
+        comprehensive_report = generate_validated_analysis_report(
+            file_path, analysis_results, validation_results
+        )
+        
+        # 6단계: 결과 반환
+        final_result = {
+            "checklist": checklist,
+            "validation_results": validation_results,
+            "analysis_results": analysis_results,
+            "comprehensive_report": comprehensive_report,
+            "is_valid": validation_results.get("validation_passed", False)
+        }
+        
+        # 7단계: 검증 실패 시 경고
+        if not final_result["is_valid"]:
+            print("⚠️ 경고: 부문 검증에 실패했습니다!")
+            print(f"누락된 부문: {', '.join(validation_results.get('missing_sections', []))}")
+            print("전체 문서를 다시 검토하세요.")
+        
+        return final_result
+            
+    except Exception as e:
+        print(f"❌ 오류 방지 워크플로우 실행 중 오류 발생: {e}")
+        return {
+            "error": str(e),
+            "is_valid": False
+        }
+```
+
+### 5. Mandatory Development Rules (MANDATORY)
+```python
+# 🚨 반드시 준수해야 할 개발 규칙
+
+# 1. 모든 문서 분석은 execute_error_prevention_workflow() 사용
+# 2. 분석 전 pre_analysis_checklist() 실행 필수
+# 3. 부문 검증은 validate_all_sections() 사용
+# 4. 보고서 생성은 generate_validated_analysis_report() 사용
+# 5. 검증 실패 시 즉시 사용자에게 경고
+# 6. 누락된 부문이 있으면 재분석 수행
+# 7. 모든 분석 결과는 검증 후에만 최종 확정
+
+def mandatory_development_workflow(file_path: Path) -> Dict[str, Any]:
+    """필수 개발 워크플로우 - 반드시 사용"""
+    print("🚀 필수 개발 워크플로우를 시작합니다...")
+    
+    # 오류 방지 워크플로우 실행
+    result = execute_error_prevention_workflow(file_path)
+    
+    # 검증 실패 시 자동 재시도
+    if not result.get("is_valid", False):
+        print("🔄 검증 실패로 인한 재분석을 시작합니다...")
+        result = execute_error_prevention_workflow(file_path)
+    
+    # 최종 결과 출력
+    if result.get("is_valid", False):
+        print("✅ 분석이 성공적으로 완료되었습니다.")
+    else:
+        print("❌ 분석에 실패했습니다. 수동 검토가 필요합니다.")
+    
+    return result
+```
+
+**🚨 CRITICAL: 건축부문 누락 사고와 같은 분석 오류를 방지하기 위해 위의 모든 워크플로우를 반드시 준수해야 합니다.**
+
+## 🌐 Cross-Platform Development Guidelines
+
+### 1. Platform Detection and Configuration
+```python
+import platform
+import sys
+from pathlib import Path
+
+def setup_cross_platform_environment() -> Dict[str, str]:
+    """크로스 플랫폼 환경 설정"""
+    platform_info = {
+        "os": platform.system(),
+        "version": platform.version(),
+        "python_version": sys.version,
+        "architecture": platform.architecture()[0]
+    }
+    
+    # Platform-specific configurations
+    if platform.system() == "Windows":
+        platform_info.update({
+            "temp_dir": os.environ.get("TEMP", "C:\\Temp"),
+            "home_dir": os.environ.get("USERPROFILE", ""),
+            "python_exe": "python.exe",
+            "path_separator": "\\"
+        })
+    else:  # macOS/Linux
+        platform_info.update({
+            "temp_dir": "/tmp",
+            "home_dir": os.environ.get("HOME", ""),
+            "python_exe": "python3",
+            "path_separator": "/"
+        })
+    
+    return platform_info
+
+def validate_cross_platform_setup() -> bool:
+    """크로스 플랫폼 설정 검증"""
+    try:
+        # Check Python version compatibility
+        if sys.version_info < (3, 8):
+            print("오류: Python 3.8 이상이 필요합니다.")
+            return False
+        
+        # Check required modules
+        required_modules = ['pathlib', 'platform', 'json', 'pandas']
+        for module in required_modules:
+            try:
+                __import__(module)
+            except ImportError:
+                print(f"오류: 필수 모듈이 없습니다: {module}")
+                return False
+        
+        # Check file system permissions
+        test_dir = Path("temp") / "test_cross_platform"
+        test_dir.mkdir(parents=True, exist_ok=True)
+        test_file = test_dir / "test.txt"
+        test_file.write_text("test", encoding='utf-8')
+        test_file.unlink()
+        test_dir.rmdir()
+        
+        print("크로스 플랫폼 설정 검증 완료")
+        return True
+        
+    except Exception as e:
+        print(f"크로스 플랫폼 설정 검증 실패: {e}")
+        return False
+```
+
+### 2. Cross-Platform File Operations
+```python
+def create_cross_platform_file_structure() -> bool:
+    """크로스 플랫폼 파일 구조 생성"""
+    directories = [
+        "input",
+        "output", 
+        "config",
+        "logs",
+        "temp",
+        "src/classifier",
+        "src/converter", 
+        "src/utils",
+        "src/utils/ect"
+    ]
+    
+    try:
+        for dir_path in directories:
+            Path(dir_path).mkdir(parents=True, exist_ok=True)
+        
+        # Create platform-specific test files
+        test_files = {
+            "input/test_korean.txt": "한국어 테스트 파일",
+            "config/platform_test.json": '{"platform": "test"}',
+            "temp/platform_temp.txt": "임시 파일"
+        }
+        
+        for file_path, content in test_files.items():
+            Path(file_path).write_text(content, encoding='utf-8')
+        
+        return True
+        
+    except Exception as e:
+        print(f"파일 구조 생성 실패: {e}")
+        return False
+
+def cleanup_cross_platform_test_files() -> None:
+    """크로스 플랫폼 테스트 파일 정리"""
+    test_files = [
+        "input/test_korean.txt",
+        "config/platform_test.json", 
+        "temp/platform_temp.txt"
+    ]
+    
+    for file_path in test_files:
+        try:
+            Path(file_path).unlink(missing_ok=True)
+        except Exception as e:
+            print(f"테스트 파일 정리 실패: {file_path} - {e}")
+```
+
+### 3. Cross-Platform Testing Strategy
+```python
+def run_cross_platform_tests() -> Dict[str, bool]:
+    """크로스 플랫폼 테스트 실행"""
+    test_results = {
+        "file_operations": False,
+        "encoding_handling": False,
+        "path_operations": False,
+        "command_execution": False
+    }
+    
+    try:
+        # 파일 작업 테스트
+        test_file = Path("temp") / "cross_platform_test.txt"
+        test_file.write_text("테스트 내용", encoding='utf-8')
+        if test_file.exists() and test_file.read_text(encoding='utf-8') == "테스트 내용":
+            test_results["file_operations"] = True
+        test_file.unlink()
+        
+        # 인코딩 처리 테스트
+        korean_text = "한국어 테스트"
+        try:
+            encoded = korean_text.encode('utf-8')
+            decoded = encoded.decode('utf-8')
+            if decoded == korean_text:
+                test_results["encoding_handling"] = True
+        except UnicodeError:
+            pass
+        
+        # 경로 작업 테스트
+        test_path = Path("temp") / "test" / "subdir"
+        test_path.mkdir(parents=True, exist_ok=True)
+        if test_path.exists():
+            test_results["path_operations"] = True
+        test_path.rmdir()
+        test_path.parent.rmdir()
+        
+        # 명령어 실행 테스트
+        try:
+            import subprocess
+            result = subprocess.run([sys.executable, "-c", "print('test')"], 
+                                  capture_output=True, text=True)
+            if result.returncode == 0 and "test" in result.stdout:
+                test_results["command_execution"] = True
+        except Exception:
+            pass
+        
+    except Exception as e:
+        print(f"크로스 플랫폼 테스트 실패: {e}")
+    
+    return test_results
+```
+
+## 📊 Document Analysis Best Practices
+
+### 1. Multi-Step Analysis Process
+```python
+def comprehensive_document_analysis(file_path: Path) -> Dict[str, Any]:
+    """종합적인 문서 분석"""
+    results = {
+        "file_info": {},
+        "structure": {},
+        "content_analysis": {},
+        "validation": {},
+        "recommendations": []
+    }
+    
+    # 1단계: 파일 정보 수집
+    results["file_info"] = collect_file_info(file_path)
+    
+    # 2단계: 구조 분석
+    results["structure"] = analyze_document_structure(file_path)
+    
+    # 3단계: 내용 분석
+    results["content_analysis"] = analyze_content(file_path)
+    
+    # 4단계: 검증
+    results["validation"] = validate_analysis_results(results)
+    
+    # 5단계: 권장사항 생성
+    results["recommendations"] = generate_recommendations(results)
+    
+    return results
+```
+
+### 2. Error Prevention Strategies
+```python
+class ErrorPreventionStrategy:
+    """오류 방지 전략"""
+    
+    @staticmethod
+    def validate_input_files(file_paths: List[Path]) -> List[Path]:
+        """입력 파일 검증"""
+        valid_files = []
+        
+        for file_path in file_paths:
+            if not file_path.exists():
+                print(f"경고: 파일이 존재하지 않습니다: {file_path}")
+                continue
+            
+            if file_path.stat().st_size == 0:
+                print(f"경고: 빈 파일입니다: {file_path}")
+                continue
+            
+            valid_files.append(file_path)
+        
+        return valid_files
+    
+    @staticmethod
+    def check_document_consistency(content: str) -> Dict[str, bool]:
+        """문서 일관성 검사"""
+        checks = {
+            "has_content": len(content.strip()) > 0,
+            "has_structure": any(keyword in content for keyword in ["부문", "장", "절"]),
+            "has_page_breaks": "===" in content,
+            "encoding_valid": True
+        }
+        
+        try:
+            content.encode('utf-8')
+        except UnicodeEncodeError:
+            checks["encoding_valid"] = False
+        
+        return checks
+    
+    @staticmethod
+    def generate_analysis_report(results: Dict[str, Any]) -> str:
+        """분석 보고서 생성"""
+        report = []
+        report.append("=== 문서 분석 보고서 ===")
+        
+        # 파일 정보
+        file_info = results.get("file_info", {})
+        report.append(f"파일명: {file_info.get('name', 'N/A')}")
+        report.append(f"크기: {file_info.get('size', 0)} bytes")
+        
+        # 구조 정보
+        structure = results.get("structure", {})
+        if structure.get("sections"):
+            report.append("발견된 부문:")
+            for section, info in structure["sections"].items():
+                if info.get("start") is not None:
+                    report.append(f"  - {section}")
+        
+        # 검증 결과
+        validation = results.get("validation", {})
+        report.append("검증 결과:")
+        for check, status in validation.items():
+            status_text = "✅ 통과" if status else "❌ 실패"
+            report.append(f"  - {check}: {status_text}")
+        
+        # 권장사항
+        recommendations = results.get("recommendations", [])
+        if recommendations:
+            report.append("권장사항:")
+            for rec in recommendations:
+                report.append(f"  - {rec}")
+        
+        return "\n".join(report)
+```
+
+### 3. Quality Assurance Workflow
+```python
+def quality_assurance_checklist() -> Dict[str, bool]:
+    """품질 보증 체크리스트"""
+    checklist = {
+        "cross_platform_compatibility": False,
+        "error_handling": False,
+        "document_analysis": False,
+        "validation_logic": False,
+        "korean_support": False
+    }
+    
+    # 크로스 플랫폼 호환성 확인
+    try:
+        platform_info = setup_cross_platform_environment()
+        if platform_info.get("os"):
+            checklist["cross_platform_compatibility"] = True
+    except Exception:
+        pass
+    
+    # 오류 처리 확인
+    try:
+        # 테스트 오류 처리
+        test_result = test_error_handling()
+        checklist["error_handling"] = test_result
+    except Exception:
+        pass
+    
+    # 문서 분석 확인
+    try:
+        test_file = Path("temp") / "test_analysis.txt"
+        test_file.write_text("테스트 문서\n제1장 테스트\n1-1 테스트절", encoding='utf-8')
+        
+        workflow = DocumentAnalysisWorkflow(test_file)
+        results = workflow.execute_analysis()
+        
+        if results and not results.get("error"):
+            checklist["document_analysis"] = True
+        
+        test_file.unlink()
+    except Exception:
+        pass
+    
+    # 검증 로직 확인
+    try:
+        test_content = "한국어 테스트 내용"
+        validation = ErrorPreventionStrategy.check_document_consistency(test_content)
+        if validation.get("has_content") and validation.get("encoding_valid"):
+            checklist["validation_logic"] = True
+    except Exception:
+        pass
+    
+    # 한국어 지원 확인
+    try:
+        korean_text = "한국어 테스트"
+        encoded = korean_text.encode('utf-8')
+        decoded = encoded.decode('utf-8')
+        if decoded == korean_text:
+            checklist["korean_support"] = True
+    except Exception:
+        pass
+    
+    return checklist
+
+def test_error_handling() -> bool:
+    """오류 처리 테스트"""
+    try:
+        # 존재하지 않는 파일 테스트
+        non_existent_file = Path("non_existent_file.txt")
+        if non_existent_file.exists():
+            return False
+        
+        # 빈 파일 테스트
+        empty_file = Path("temp") / "empty_test.txt"
+        empty_file.write_text("", encoding='utf-8')
+        if empty_file.stat().st_size != 0:
+            empty_file.unlink()
+            return False
+        empty_file.unlink()
+        
+        return True
+    except Exception:
+        return False
+```
+
+## 🎯 Development Best Practices
+
+### 1. Code Review Process
+```python
+def code_review_checklist() -> List[str]:
+    """코드 리뷰 체크리스트"""
+    checklist = [
+        "모든 함수에 타입 힌트가 포함되어 있는가?",
+        "한국어 오류 메시지를 사용하는가?",
+        "크로스 플랫폼 호환성을 고려했는가?",
+        "문서 분석 패턴을 적용했는가?",
+        "검증 로직이 포함되어 있는가?",
+        "예외 처리가 완료되었는가?",
+        "하드코딩된 값을 사용하지 않았는가?",
+        "pathlib.Path를 사용하는가?",
+        "UTF-8 인코딩을 사용하는가?",
+        "설정을 외부화했는가?",
+        "전역 변수를 사용하지 않았는가?",
+        "함수가 50줄 이하인가?",
+        "클래스가 단일 책임 원칙을 따르는가?"
+    ]
+    return checklist
+```
+
+### 2. Testing Strategy
+```python
+def testing_strategy() -> Dict[str, List[str]]:
+    """테스트 전략"""
+    return {
+        "unit_tests": [
+            "각 함수의 개별 동작 테스트",
+            "오류 상황 테스트",
+            "경계값 테스트",
+            "타입 힌트 검증"
+        ],
+        "integration_tests": [
+            "모듈 간 연동 테스트",
+            "파일 입출력 테스트",
+            "설정 파일 로드 테스트"
+        ],
+        "cross_platform_tests": [
+            "Windows 환경 테스트",
+            "macOS 환경 테스트", 
+            "Linux 환경 테스트",
+            "경로 처리 테스트",
+            "인코딩 처리 테스트"
+        ],
+        "document_analysis_tests": [
+            "한국어 문서 테스트",
+            "PDF 파일 테스트",
+            "대용량 파일 테스트",
+            "손상된 파일 테스트"
+        ]
+    }
+```
+
+### 3. Documentation Standards
+```python
+def documentation_standards() -> Dict[str, List[str]]:
+    """문서화 표준"""
+    return {
+        "code_documentation": [
+            "모든 모듈에 한국어 설명 포함",
+            "함수별 상세한 docstring 작성",
+            "복잡한 알고리즘에 주석 추가",
+            "비즈니스 로직 설명 포함"
+        ],
+        "user_documentation": [
+            "사용자 가이드 작성",
+            "설치 및 설정 방법 문서화",
+            "오류 해결 방법 가이드",
+            "크로스 플랫폼 사용법 설명"
+        ],
+        "api_documentation": [
+            "API 엔드포인트 설명",
+            "요청/응답 예제 포함",
+            "오류 코드 및 메시지 문서화",
+            "인증 및 권한 설명"
+        ],
+        "maintenance_documentation": [
+            "배포 프로세스 문서화",
+            "모니터링 및 로깅 가이드",
+            "백업 및 복구 절차",
+            "성능 튜닝 가이드"
+        ]
+    }
+```
+
+## 🔄 Continuous Improvement
+
+### 1. Performance Monitoring
+```python
+def performance_monitoring() -> Dict[str, Any]:
+    """성능 모니터링"""
+    import time
+    import psutil
+    
+    return {
+        "memory_usage": psutil.virtual_memory().percent,
+        "cpu_usage": psutil.cpu_percent(),
+        "disk_usage": psutil.disk_usage('/').percent,
+        "timestamp": time.time()
+    }
+```
+
+### 2. Error Tracking
+```python
+def error_tracking() -> Dict[str, List[str]]:
+    """오류 추적"""
+    return {
+        "common_errors": [
+            "파일을 찾을 수 없음",
+            "인코딩 오류",
+            "권한 오류",
+            "메모리 부족",
+            "네트워크 오류"
+        ],
+        "error_resolution": [
+            "파일 경로 확인",
+            "UTF-8 인코딩 사용",
+            "관리자 권한 확인",
+            "메모리 사용량 최적화",
+            "네트워크 연결 확인"
+        ]
+    }
+```
+
+### 3. Quality Metrics
+```python
+def quality_metrics() -> Dict[str, float]:
+    """품질 지표"""
+    return {
+        "code_coverage": 85.0,  # 목표: 85% 이상
+        "test_pass_rate": 95.0,  # 목표: 95% 이상
+        "documentation_completeness": 90.0,  # 목표: 90% 이상
+        "cross_platform_compatibility": 100.0,  # 목표: 100%
+        "error_handling_coverage": 95.0  # 목표: 95% 이상
+    }
+```
+
+**🚨 CRITICAL: 모든 문서 분석 작업은 반드시 위의 워크플로우를 사용해야 합니다.**
+
+## 📋 목차 트리 계층 구조 워크플로우 (MANDATORY - NEW)
+
+### 1. 계층 구조 생성 패턴 (MANDATORY)
+```python
+class HierarchicalTOCWorkflow:
+    """계층적 목차 트리 생성 워크플로우 - 반드시 사용"""
+    
+    def __init__(self):
+        self.hierarchy_rules = TOCHierarchyRules()
+        self.results = {}
+    
+    def execute_hierarchical_generation(self, toc_items: List[Dict]) -> Dict[str, Any]:
+        """계층적 목차 트리 생성 실행"""
+        try:
+            # 1단계: 계층 레벨 분석
+            hierarchy_analysis = self._analyze_hierarchy_levels(toc_items)
+            
+            # 2단계: 계층적 트리 생성
+            hierarchical_tree = self._generate_hierarchical_tree(toc_items)
+            
+            # 3단계: 계층 구조 검증
+            hierarchy_validation = self._validate_hierarchy_structure(hierarchical_tree)
+            
+            # 4단계: 검증 실패 시 재구성
+            if not hierarchy_validation["is_valid"]:
+                print("⚠️ 경고: 계층 구조 오류가 발견되었습니다.")
+                hierarchical_tree = self._regenerate_hierarchy_structure(toc_items)
+                hierarchy_validation = self._validate_hierarchy_structure(hierarchical_tree)
+            
+            # 5단계: 계층적 마크다운 생성
+            hierarchical_markdown = self._generate_hierarchical_markdown(hierarchical_tree)
+            
+            return {
+                "hierarchical_tree": hierarchical_tree,
+                "hierarchy_analysis": hierarchy_analysis,
+                "hierarchy_validation": hierarchy_validation,
+                "hierarchical_markdown": hierarchical_markdown,
+                "is_valid": hierarchy_validation["is_valid"]
+            }
+            
+        except Exception as e:
+            return {"error": f"계층적 목차 트리 생성 중 오류 발생: {e}"}
+    
+    def _analyze_hierarchy_levels(self, toc_items: List[Dict]) -> Dict[str, Any]:
+        """계층 레벨 분석"""
+        analysis = {
+            "대분류": [],
+            "중분류": [],
+            "소분류": [],
+            "본문분류": [],
+            "세부분류": []
+        }
+        
+        for item in toc_items:
+            level = self.hierarchy_rules.get_hierarchy_level(item['title'])
+            item['level'] = level
+            
+            if level == 0:
+                analysis["대분류"].append(item)
+            elif level == 1:
+                analysis["중분류"].append(item)
+            elif level == 2:
+                analysis["소분류"].append(item)
+            elif level == 3:
+                analysis["본문분류"].append(item)
+            elif level == 4:
+                analysis["세부분류"].append(item)
+        
+        return analysis
+    
+    def _generate_hierarchical_tree(self, toc_items: List[Dict]) -> Dict[str, Any]:
+        """계층적 트리 생성"""
+        return generate_hierarchical_toc(toc_items)
+    
+    def _validate_hierarchy_structure(self, hierarchical_tree: dict) -> Dict[str, Any]:
+        """계층 구조 검증"""
+        return validate_hierarchy_structure(hierarchical_tree)
+    
+    def _regenerate_hierarchy_structure(self, toc_items: List[Dict]) -> Dict[str, Any]:
+        """계층 구조 재생성"""
+        print("🔄 계층 구조 재구성을 시작합니다...")
+        return generate_hierarchical_toc(toc_items)
+    
+    def _generate_hierarchical_markdown(self, hierarchical_tree: dict) -> str:
+        """계층적 마크다운 생성"""
+        markdown = "# 📋 계층적 목차 구조 (올바른 들여쓰기 적용)\n\n"
+        
+        for root_node in hierarchical_tree.get('children', []):
+            markdown += render_hierarchical_markdown(root_node)
+        
+        return markdown
+```
+
+### 2. 계층 구조 검증 워크플로우 (MANDATORY)
+```python
+def execute_hierarchy_validation_workflow(toc_tree: dict) -> Dict[str, Any]:
+    """계층 구조 검증 워크플로우 - 반드시 사용"""
+    
+    # 1단계: 기본 계층 구조 검증
+    validation = validate_hierarchy_structure(toc_tree)
+    
+    # 2단계: 오류 분석
+    if not validation["is_valid"]:
+        print("❌ 계층 구조 오류 발견:")
+        
+        # 계층 오류 출력
+        if validation["hierarchy_errors"]:
+            print(f"  - 계층 레벨 오류: {len(validation['hierarchy_errors'])}개")
+            for error in validation["hierarchy_errors"][:5]:  # 처음 5개만 출력
+                print(f"    * {error['node']}: 예상 레벨 {error['expected_level']}, 실제 레벨 {error['actual_level']}")
+        
+        # 들여쓰기 오류 출력
+        if validation["indent_errors"]:
+            print(f"  - 들여쓰기 오류: {len(validation['indent_errors'])}개")
+            for error in validation["indent_errors"][:5]:  # 처음 5개만 출력
+                print(f"    * {error['node']}: 예상 들여쓰기 '{error['expected_indent']}', 실제 들여쓰기 '{error['actual_indent']}'")
+    
+    # 3단계: 오류 수정 제안
+    if not validation["is_valid"]:
+        print("\n🔧 오류 수정 제안:")
+        print("  1. 계층 레벨을 정확히 판단하여 level 속성 설정")
+        print("  2. 들여쓰기를 계층 레벨에 맞게 적용")
+        print("  3. 상위 항목 없이 독립적으로 존재하는 하위 항목들을 적절한 부모에 배치")
+    
+    return validation
+```
+
+### 3. 계층 구조 테스트 패턴 (MANDATORY)
+```python
+def test_hierarchy_structure():
+    """계층 구조 테스트"""
+    
+    # 테스트 데이터 생성
+    test_items = [
+        {"title": "제1장 적용기준", "page": 3, "type": "chapter"},
+        {"title": "1-1 일반사항", "page": 3, "type": "item"},
+        {"title": "1-1-1 목적", "page": 3, "type": "item"},
+        {"title": "1-1-2 적용범위", "page": 3, "type": "item"},
+        {"title": "1-2 설계 및 수량", "page": 3, "type": "item"},
+        {"title": "1-2-1 수량의 계산", "page": 3, "type": "item"},
+        {"title": "제2장 가설공사", "page": 33, "type": "chapter"},
+        {"title": "2-8 추락재해방지시설", "page": 47, "type": "item"},
+        {"title": "2-8-11 계단난간대 설치 및 해체", "page": 50, "type": "item"},
+        {"title": "2-8-12 안전난간대 설치 및 해체(토목)", "page": 51, "type": "item"},
+        {"title": "2-9 통행안전시설", "page": 52, "type": "item"},
+        {"title": "2-9-1 타워크레인 방호울타리 설치 및 해체", "page": 52, "type": "item"}
+    ]
+    
+    # 1단계: 계층적 목차 트리 생성
+    workflow = HierarchicalTOCWorkflow()
+    result = workflow.execute_hierarchical_generation(test_items)
+    
+    # 2단계: 결과 검증
+    assert "error" not in result, f"계층적 목차 트리 생성 실패: {result.get('error')}"
+    assert result.get("is_valid", False), "계층 구조 검증 실패"
+    
+    # 3단계: 계층 구조 확인
+    tree = result.get("hierarchical_tree", {})
+    assert tree.get("children"), "계층 트리가 비어있습니다"
+    
+    # 4단계: 들여쓰기 확인
+    markdown = result.get("hierarchical_markdown", "")
+    assert "  - 제1장" in markdown, "중분류 들여쓰기 오류"
+    assert "    - 1-1" in markdown, "소분류 들여쓰기 오류"
+    assert "      - 1-1-1" in markdown, "본문분류 들여쓰기 오류"
+    
+    print("✅ 계층 구조 테스트 통과")
+    return result
+```
+
+### 4. 계층 구조 적용 워크플로우 (MANDATORY)
+```python
+def apply_hierarchical_structure_to_existing_toc(toc_tree: dict) -> dict:
+    """기존 목차 트리에 계층 구조 적용 - 반드시 사용"""
+    
+    # 1단계: 기존 트리를 평면 리스트로 변환
+    flat_items = []
+    
+    def extract_items(node):
+        item = {
+            'title': node.get('title', ''),
+            'page': node.get('page', 0),
+            'type': node.get('type', 'item'),
+            'number': node.get('number', '')
+        }
+        flat_items.append(item)
+        
+        for child in node.get('children', []):
+            extract_items(child)
+    
+    for root_node in toc_tree.get('children', []):
+        extract_items(root_node)
+    
+    # 2단계: 계층적 트리 재생성
+    workflow = HierarchicalTOCWorkflow()
+    result = workflow.execute_hierarchical_generation(flat_items)
+    
+    # 3단계: 결과 반환
+    if result.get("is_valid", False):
+        print("✅ 계층 구조 적용 완료")
+        return result.get("hierarchical_tree", {})
+    else:
+        print("❌ 계층 구조 적용 실패")
+        return toc_tree
+```
+
+**🚨 CRITICAL: 계층 구조 오류를 방지하기 위해 위의 모든 계층 구조 워크플로우를 반드시 준수해야 합니다.**
+
+
+
+

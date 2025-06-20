@@ -1,0 +1,1436 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# ASCR Project Coding Standards & Rules
+
+## 🎯 Project Overview
+ASCR (Automated Standard Construction Reference) is a Korean PDF document automation processing system. The project follows specific architectural patterns and coding conventions optimized for Korean language processing and PDF manipulation.
+
+## 📁 Project Structure
+- **Entry Point**: [main.py](mdc:main.py) - Main execution file with interactive menu
+- **Configuration**: [config/settings.py](mdc:config/settings.py) - Central configuration management
+- **Core Logic**: [src/](mdc:src) - Modular source code organization
+- **Dependencies**: [requirements.txt](mdc:requirements.txt) - Fixed version dependencies
+
+## 🚨 CRITICAL RULES - MUST FOLLOW
+
+### 1. File Header & Encoding (MANDATORY)
+```python
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Module description in Korean
+"""
+```
+**ALWAYS** include these three elements in every Python file.
+
+### 2. Cross-Platform Compatibility (MANDATORY)
+```python
+import platform
+import sys
+from pathlib import Path
+
+# ALWAYS use pathlib.Path for cross-platform path handling
+def get_platform_info() -> Dict[str, str]:
+    """플랫폼 정보 반환"""
+    return {
+        "os": platform.system(),
+        "version": platform.version(),
+        "python_version": sys.version,
+        "architecture": platform.architecture()[0]
+    }
+
+# ALWAYS use Path.joinpath() or / operator for path concatenation
+def create_cross_platform_path(base_dir: str, filename: str) -> Path:
+    """크로스 플랫폼 경로 생성"""
+    return Path(base_dir) / filename
+
+# ALWAYS handle line endings properly
+def read_file_cross_platform(file_path: Path) -> str:
+    """크로스 플랫폼 파일 읽기"""
+    with open(file_path, 'r', encoding='utf-8', newline='') as f:
+        return f.read()
+
+# ALWAYS use os.pathsep for PATH environment variables
+import os
+def get_executable_path() -> str:
+    """실행 파일 경로 반환"""
+    if platform.system() == "Windows":
+        return "python.exe"
+    else:
+        return "python3"
+```
+
+**NEVER** use hardcoded path separators (`\` or `/`).
+
+### 3. Korean Language Support (MANDATORY)
+- Use Korean docstrings and comments for all user-facing documentation
+- Use `encoding='utf-8-sig'` for CSV files to ensure Korean character compatibility
+- All error messages and user feedback must be in Korean
+
+### 4. Type Hints (MANDATORY)
+```python
+from typing import List, Dict, Optional, Tuple
+
+def process_pdf(self, input_path: str) -> None:
+def extract_levels(code: str) -> Dict[str, str]:
+```
+**NEVER** create functions without type hints.
+
+### 5. Error Handling Pattern (MANDATORY)
+```python
+try:
+    # Main logic
+except FileNotFoundError:
+    print(f"오류: 파일을 찾을 수 없습니다: {file_path}")
+    return []
+except Exception as e:
+    print(f"오류: 처리 중 오류 발생: {e}")
+    return []
+```
+**ALWAYS** handle specific exceptions first, then general exceptions.
+
+### 6. Path Management (MANDATORY)
+```python
+from pathlib import Path
+# Use Path objects, NEVER os.path for file operations
+```
+**NEVER** use `os.path` - always use `pathlib.Path`.
+
+### 7. Document Analysis Pattern (MANDATORY)
+```python
+class DocumentAnalyzer:
+    """문서 분석 클래스 - 반드시 사용"""
+    
+    def __init__(self, file_path: Path):
+        self.file_path = file_path
+        self.content = ""
+        self.structure = {}
+        
+    def analyze_document_structure(self) -> Dict[str, Any]:
+        """문서 구조 분석 - 체계적 접근 필수"""
+        try:
+            # 1. 파일 타입 및 크기 확인
+            file_info = self._get_file_info()
+            
+            # 2. 내용 미리보기 (처음 1000자)
+            preview = self._get_content_preview()
+            
+            # 3. 구조적 패턴 검색
+            patterns = self._find_structural_patterns()
+            
+            # 4. 부문/장/절 구분 분석
+            sections = self._analyze_sections()
+            
+            # 5. 검증 및 결과 반환
+            return self._validate_and_return(file_info, preview, patterns, sections)
+            
+        except Exception as e:
+            print(f"문서 분석 중 오류 발생: {e}")
+            return {}
+    
+    def _get_file_info(self) -> Dict[str, Any]:
+        """파일 정보 수집"""
+        return {
+            "name": self.file_path.name,
+            "size": self.file_path.stat().st_size,
+            "type": self.file_path.suffix.lower(),
+            "exists": self.file_path.exists()
+        }
+    
+    def _get_content_preview(self) -> str:
+        """내용 미리보기"""
+        try:
+            with open(self.file_path, 'r', encoding='utf-8') as f:
+                return f.read(1000)
+        except UnicodeDecodeError:
+            # 바이너리 파일인 경우
+            return "[바이너리 파일]"
+    
+    def _find_structural_patterns(self) -> Dict[str, List[str]]:
+        """구조적 패턴 검색"""
+        patterns = {
+            "부문": [],
+            "장": [],
+            "절": [],
+            "페이지": []
+        }
+        
+        # 정규식 패턴 정의
+        section_patterns = {
+            "부문": r"([가-힣]+부문)",
+            "장": r"(제[0-9]+장\s*[가-힣]+)",
+            "절": r"([0-9]+-[0-9]+[가-힣]*)",
+            "페이지": r"(=== [0-9]+페이지 ==)"
+        }
+        
+        # 패턴 검색
+        for pattern_name, pattern in section_patterns.items():
+            matches = re.findall(pattern, self.content)
+            patterns[pattern_name] = matches
+        
+        return patterns
+    
+    def _analyze_sections(self) -> Dict[str, Any]:
+        """부문/장/절 구분 분석"""
+        sections = {
+            "공통부문": {"start": None, "end": None, "chapters": []},
+            "토목부문": {"start": None, "end": None, "chapters": []},
+            "건축부문": {"start": None, "end": None, "chapters": []},
+            "기계설비부문": {"start": None, "end": None, "chapters": []},
+            "유지관리부문": {"start": None, "end": None, "chapters": []}
+        }
+        
+        # 부문 시작점 찾기
+        for line_num, line in enumerate(self.content.split('\n')):
+            for section_name in sections.keys():
+                if section_name in line:
+                    sections[section_name]["start"] = line_num
+                    break
+        
+        return sections
+    
+    def _validate_and_return(self, file_info: Dict, preview: str, 
+                           patterns: Dict, sections: Dict) -> Dict[str, Any]:
+        """검증 및 결과 반환"""
+        return {
+            "file_info": file_info,
+            "preview": preview[:200] + "..." if len(preview) > 200 else preview,
+            "patterns": patterns,
+            "sections": sections,
+            "analysis_confidence": self._calculate_confidence(patterns, sections)
+        }
+    
+    def _calculate_confidence(self, patterns: Dict, sections: Dict) -> float:
+        """분석 신뢰도 계산"""
+        confidence = 0.0
+        
+        # 부문이 발견되면 +30%
+        if any(sections[section]["start"] is not None for section in sections):
+            confidence += 0.3
+        
+        # 장이 발견되면 +30%
+        if patterns["장"]:
+            confidence += 0.3
+        
+        # 절이 발견되면 +20%
+        if patterns["절"]:
+            confidence += 0.2
+        
+        # 페이지 구분이 발견되면 +20%
+        if patterns["페이지"]:
+            confidence += 0.2
+        
+        return min(confidence, 1.0)
+```
+
+### 8. PDF Processing Rules (MANDATORY)
+```python
+# ALWAYS distinguish between different PDF types
+class PDFProcessor:
+    """PDF 처리 클래스 - 반드시 사용"""
+    
+    def __init__(self):
+        self.toc_pdf = "input/split_3_49.pdf"  # 목차만 포함 (47페이지)
+        self.full_pdf = "input/2025_construction_work_standard_price_list.pdf"  # 전체 내용 포함
+    
+    def process_toc_extraction(self) -> Dict[str, Any]:
+        """목차 추출용 PDF 처리"""
+        # split_3_49.pdf는 목차 구조 분석용
+        return self._extract_toc_structure(self.toc_pdf)
+    
+    def process_full_content_split(self) -> Dict[str, Any]:
+        """전체 내용 분할용 PDF 처리"""
+        # 2025_construction_work_standard_price_list.pdf는 실제 분할용
+        return self._split_full_content(self.full_pdf)
+    
+    def _validate_pdf_purpose(self, pdf_path: str) -> str:
+        """PDF 용도 검증"""
+        if "split_3_49" in pdf_path:
+            return "toc_extraction"  # 목차 추출용
+        elif "2025_construction_work_standard_price_list" in pdf_path:
+            return "full_content_split"  # 전체 내용 분할용
+        else:
+            return "unknown"
+```
+
+**NEVER** use the wrong PDF file for the wrong purpose.
+
+### 9. PDF Split Workflow (MANDATORY)
+```python
+class PDFSplitWorkflow:
+    """PDF 분할 워크플로우 - 반드시 사용"""
+    
+    def __init__(self):
+        self.toc_json = None
+        self.full_pdf_path = "input/2025_construction_work_standard_price_list.pdf"
+    
+    def execute_split_workflow(self) -> bool:
+        """PDF 분할 워크플로우 실행"""
+        try:
+            # 1단계: 목차 JSON 로드 (split_3_49.pdf에서 생성된 것)
+            if not self._load_toc_json():
+                return False
+            
+            # 2단계: 전체 PDF 로드 (2025_construction_work_standard_price_list.pdf)
+            if not self._load_full_pdf():
+                return False
+            
+            # 3단계: 부문별/장별 분할
+            return self._split_by_sections()
+            
+        except Exception as e:
+            print(f"PDF 분할 워크플로우 오류: {e}")
+            return False
+    
+    def _load_toc_json(self) -> bool:
+        """목차 JSON 로드"""
+        json_path = "output/toc_tree_20250621_001431.json"
+        if not Path(json_path).exists():
+            print(f"오류: 목차 JSON 파일이 없습니다: {json_path}")
+            return False
+        
+        with open(json_path, 'r', encoding='utf-8') as f:
+            self.toc_json = json.load(f)
+        return True
+    
+    def _load_full_pdf(self) -> bool:
+        """전체 PDF 로드"""
+        if not Path(self.full_pdf_path).exists():
+            print(f"오류: 전체 PDF 파일이 없습니다: {self.full_pdf_path}")
+            return False
+        
+        self.pdf_reader = PdfReader(self.full_pdf_path)
+        print(f"✅ 전체 PDF 로드 완료: {len(self.pdf_reader.pages)}페이지")
+        return True
+```
+
+**ALWAYS** use the correct PDF file for each purpose.
+
+### 10. Table of Contents Tree Structure Generation (MANDATORY)
+```python
+class TableOfContentsGenerator:
+    """목차 트리 구조 생성 클래스 - 반드시 사용"""
+    
+    def parse_toc_tree(self, content: str) -> Dict[str, Any]:
+        """목차 트리 구조 생성 - 장 번호와 제목 연결 필수"""
+        
+        # 1. 장 번호와 장 제목이 연속된 두 줄에 분리되어 있을 경우, 
+        #    반드시 하나의 노드(제1장 적용기준)로 합쳐서 트리 구조를 생성해야 한다.
+        chapter_pattern = re.compile(r'^(\d+)줄: 제(\d+)장$')
+        title_pattern = re.compile(r'^(\d+)줄: ([가-힣A-Za-z0-9\-\s]+)\s*·+\s*(\d+)$')
+        
+        # 2. 실제 데이터 샘플을 기반으로, 장/절/조 등 모든 계층이 올바르게 
+        #    트리 구조로 변환되는지 테스트 케이스를 작성하고, 결과를 검증한다.
+        chapters = {}
+        current_chapter = None
+        
+        for line in content.split('\n'):
+            # 장 번호 매칭
+            chapter_match = chapter_pattern.match(line.strip())
+            if chapter_match:
+                line_num = int(chapter_match.group(1))
+                chapter_num = chapter_match.group(2)
+                current_chapter = f"제{chapter_num}장"
+                chapters[current_chapter] = {"title": "", "page": None, "line_num": line_num}
+                continue
+            
+            # 장 제목 매칭 (다음 줄)
+            if current_chapter and chapters[current_chapter]["title"] == "":
+                title_match = title_pattern.match(line.strip())
+                if title_match:
+                    title = title_match.group(2).strip()
+                    page = int(title_match.group(3))
+                    chapters[current_chapter]["title"] = title
+                    chapters[current_chapter]["page"] = page
+                    # 장 번호와 제목을 하나의 노드로 합침
+                    chapters[current_chapter]["full_title"] = f"{current_chapter} {title}"
+        
+        # 3. 마크다운 등 출력 포맷에서는 장 번호와 제목이 모두 포함된 형태
+        #    (제1장 적용기준)로 출력되도록 한다.
+        return chapters
+```
+
+**NEVER** create separate nodes for chapter numbers and titles - always combine them.
+
+### 11. Document Analysis Validation (MANDATORY - NEW)
+```python
+class DocumentAnalysisValidator:
+    """문서 분석 검증 클래스 - 반드시 사용"""
+    
+    def __init__(self):
+        self.required_sections = [
+            "공통부문", "토목부문", "건축부문", 
+            "기계설비부문", "유지관리부문"
+        ]
+        self.validation_errors = []
+        
+    def validate_analysis_completeness(self, analysis_results: Dict[str, Any]) -> Dict[str, Any]:
+        """분석 완전성 검증 - 반드시 실행"""
+        validation_result = {
+            "is_complete": True,
+            "missing_sections": [],
+            "validation_errors": [],
+            "recommendations": []
+        }
+        
+        # 1. 필수 부문 존재 여부 확인
+        sections = analysis_results.get("sections", {})
+        for required_section in self.required_sections:
+            if not sections.get(required_section, {}).get("start"):
+                validation_result["missing_sections"].append(required_section)
+                validation_result["is_complete"] = False
+        
+        # 2. 부문별 장(章) 존재 여부 확인
+        for section_name, section_data in sections.items():
+            if section_data.get("start") is not None:
+                chapters = section_data.get("chapters", [])
+                if not chapters:
+                    validation_result["validation_errors"].append(
+                        f"{section_name}: 장(章) 정보가 없습니다"
+                    )
+        
+        # 3. 페이지 범위 검증
+        self._validate_page_ranges(analysis_results, validation_result)
+        
+        # 4. 권장사항 생성
+        validation_result["recommendations"] = self._generate_recommendations(
+            validation_result
+        )
+        
+        return validation_result
+    
+    def _validate_page_ranges(self, analysis_results: Dict[str, Any], 
+                            validation_result: Dict[str, Any]) -> None:
+        """페이지 범위 검증"""
+        sections = analysis_results.get("sections", {})
+        content_lines = analysis_results.get("content", "").split('\n')
+        
+        for section_name, section_data in sections.items():
+            if section_data.get("start") is not None:
+                start_line = section_data["start"]
+                end_line = section_data.get("end")
+                
+                # 시작점 이후 100줄 내에 다음 부문이 있는지 확인
+                next_section_found = False
+                for i in range(start_line + 1, min(start_line + 100, len(content_lines))):
+                    for other_section in self.required_sections:
+                        if other_section != section_name and other_section in content_lines[i]:
+                            next_section_found = True
+                            break
+                    if next_section_found:
+                        break
+                
+                if not next_section_found and end_line is None:
+                    validation_result["validation_errors"].append(
+                        f"{section_name}: 끝점을 찾을 수 없습니다"
+                    )
+    
+    def _generate_recommendations(self, validation_result: Dict[str, Any]) -> List[str]:
+        """권장사항 생성"""
+        recommendations = []
+        
+        if validation_result["missing_sections"]:
+            recommendations.append(
+                f"누락된 부문을 확인하세요: {', '.join(validation_result['missing_sections'])}"
+            )
+        
+        if validation_result["validation_errors"]:
+            recommendations.append(
+                "검증 오류를 수정하세요: " + "; ".join(validation_result["validation_errors"])
+            )
+        
+        if not validation_result["is_complete"]:
+            recommendations.append("전체 문서를 다시 분석하세요")
+        
+        return recommendations
+```
+
+### 12. Analysis Report Generator (MANDATORY - NEW)
+```python
+class AnalysisReportGenerator:
+    """분석 보고서 자동 생성 클래스 - 반드시 사용"""
+    
+    def __init__(self, analysis_results: Dict[str, Any], validation_results: Dict[str, Any]):
+        self.analysis_results = analysis_results
+        self.validation_results = validation_results
+        
+    def generate_comprehensive_report(self) -> str:
+        """종합 분석 보고서 생성 - 반드시 실행"""
+        report_parts = []
+        
+        # 1. 분석 개요
+        report_parts.append(self._generate_overview())
+        
+        # 2. 문서 구조 분석
+        report_parts.append(self._generate_structure_analysis())
+        
+        # 3. 부문별 상세 분석
+        report_parts.append(self._generate_section_details())
+        
+        # 4. 검증 결과
+        report_parts.append(self._generate_validation_report())
+        
+        # 5. 권장사항
+        report_parts.append(self._generate_recommendations())
+        
+        return "\n\n".join(report_parts)
+    
+    def _generate_overview(self) -> str:
+        """분석 개요 생성"""
+        file_info = self.analysis_results.get("file_info", {})
+        return f"""## 📋 PDF 구조 분석 보고서
+
+### 🎯 **분석 개요**
+- **파일명**: {file_info.get('name', 'N/A')}
+- **분석 시간**: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+- **파일 크기**: {file_info.get('size', 0):,} bytes
+- **분석 신뢰도**: {self.analysis_results.get('analysis_confidence', 0):.1f}%"""
+    
+    def _generate_structure_analysis(self) -> str:
+        """구조 분석 생성"""
+        sections = self.analysis_results.get("sections", {})
+        structure_text = "### 🏗️ **문서 구조 분석**\n\n"
+        
+        for section_name, section_data in sections.items():
+            if section_data.get("start") is not None:
+                chapters = section_data.get("chapters", [])
+                structure_text += f"**{section_name}**\n"
+                for chapter in chapters:
+                    structure_text += f"- {chapter}\n"
+                structure_text += "\n"
+        
+        return structure_text
+    
+    def _generate_section_details(self) -> str:
+        """부문별 상세 분석 생성"""
+        sections = self.analysis_results.get("sections", {})
+        details_text = "### 📊 **부문별 상세 분석**\n\n"
+        
+        for section_name, section_data in sections.items():
+            if section_data.get("start") is not None:
+                start_line = section_data["start"]
+                end_line = section_data.get("end", "미정")
+                chapters = section_data.get("chapters", [])
+                
+                details_text += f"**{section_name}**\n"
+                details_text += f"- 시작 위치: {start_line}번째 줄\n"
+                details_text += f"- 끝 위치: {end_line}번째 줄\n"
+                details_text += f"- 포함된 장: {len(chapters)}개\n"
+                details_text += "\n"
+        
+        return details_text
+    
+    def _generate_validation_report(self) -> str:
+        """검증 결과 생성"""
+        validation = self.validation_results
+        validation_text = "### ✅ **검증 결과**\n\n"
+        
+        if validation.get("is_complete", False):
+            validation_text += "✅ **분석 완료**: 모든 필수 부문이 정상적으로 분석되었습니다.\n\n"
+        else:
+            validation_text += "❌ **분석 불완전**: 일부 부문이 누락되었습니다.\n\n"
+        
+        if validation.get("missing_sections"):
+            validation_text += f"**누락된 부문**: {', '.join(validation['missing_sections'])}\n\n"
+        
+        if validation.get("validation_errors"):
+            validation_text += "**검증 오류**:\n"
+            for error in validation["validation_errors"]:
+                validation_text += f"- {error}\n"
+            validation_text += "\n"
+        
+        return validation_text
+    
+    def _generate_recommendations(self) -> str:
+        """권장사항 생성"""
+        recommendations = self.validation_results.get("recommendations", [])
+        rec_text = "### 💡 **권장사항**\n\n"
+        
+        if recommendations:
+            for i, rec in enumerate(recommendations, 1):
+                rec_text += f"{i}. {rec}\n"
+        else:
+            rec_text += "현재 분석 결과가 만족스럽습니다.\n"
+        
+        return rec_text
+```
+
+### 13. Mandatory Analysis Workflow (MANDATORY - NEW)
+```python
+def execute_mandatory_analysis_workflow(file_path: Path) -> Dict[str, Any]:
+    """필수 분석 워크플로우 - 반드시 사용"""
+    try:
+        # 1. 문서 분석기 초기화
+        analyzer = DocumentAnalyzer(file_path)
+        
+        # 2. 문서 구조 분석
+        analysis_results = analyzer.analyze_document_structure()
+        
+        # 3. 검증기 초기화 및 검증
+        validator = DocumentAnalysisValidator()
+        validation_results = validator.validate_analysis_completeness(analysis_results)
+        
+        # 4. 보고서 생성기 초기화 및 보고서 생성
+        report_generator = AnalysisReportGenerator(analysis_results, validation_results)
+        comprehensive_report = report_generator.generate_comprehensive_report()
+        
+        # 5. 결과 반환
+        return {
+            "analysis_results": analysis_results,
+            "validation_results": validation_results,
+            "comprehensive_report": comprehensive_report,
+            "is_valid": validation_results.get("is_complete", False)
+        }
+        
+    except Exception as e:
+        print(f"분석 워크플로우 실행 중 오류 발생: {e}")
+        return {
+            "error": str(e),
+            "is_valid": False
+        }
+```
+
+**🚨 CRITICAL: 모든 문서 분석 작업은 반드시 위의 워크플로우를 사용해야 합니다.**
+
+## 🚨 CRITICAL: 건축부문 누락 사고와 같은 분석 오류를 방지하기 위해 위의 모든 검증 규칙을 반드시 준수해야 합니다.
+
+## 📋 목차 트리 생성 규칙 (MANDATORY - NEW)
+
+### 1. 목차 트리 완전성 검증 (MANDATORY)
+```python
+def validate_toc_completeness(pdf_pages: int, toc_tree: dict) -> Dict[str, Any]:
+    """목차 트리 완전성 검증 - 반드시 실행"""
+    validation_result = {
+        "is_complete": True,
+        "missing_pages": [],
+        "found_pages": [],
+        "total_pages_in_tree": 0,
+        "validation_errors": []
+    }
+    
+    # PDF 총 페이지 수와 트리 내 페이지 수 비교
+    tree_pages = set()
+    def collect_pages(node):
+        if 'page' in node:
+            tree_pages.add(node['page'])
+        for child in node.get('children', []):
+            collect_pages(child)
+    
+    collect_pages(toc_tree)
+    validation_result["found_pages"] = sorted(list(tree_pages))
+    validation_result["total_pages_in_tree"] = len(tree_pages)
+    
+    # 누락된 페이지 확인
+    for page_num in range(1, pdf_pages + 1):
+        if page_num not in tree_pages:
+            validation_result["missing_pages"].append(page_num)
+            validation_result["is_complete"] = False
+    
+    return validation_result
+```
+
+### 2. 목차 패턴 인식 규칙 (MANDATORY)
+```python
+# 🚨 반드시 준수해야 할 목차 패턴 인식 규칙
+
+# 1. 장 패턴: "제n장 제목" 형태
+chapter_pattern = re.compile(r'^(\d+)줄: 제(\d+)장\s+(.+?)\s+···\s+(\d+)$')
+
+# 2. 절/조/항목 패턴: "n-n-n 제목" 형태  
+item_pattern = re.compile(r'^(\d+)줄: (\d+-\d+(-\d+)?)\s+(.+?)\s+···\s+(\d+)$')
+
+# 3. 기타 항목 패턴: "참고자료", "부록", "삭제예정항목" 등
+other_pattern = re.compile(r'^(\d+)줄: (.+?)\s+···\s+(\d+)$')
+
+# 4. 모든 페이지의 모든 항목을 반드시 인식해야 함
+# 5. 숫자 패턴이 아닌 기타 항목도 트리에 포함해야 함
+# 6. 누락된 페이지가 있으면 즉시 재분석 수행
+```
+
+### 3. 목차 트리 생성 워크플로우 (MANDATORY)
+```python
+def execute_mandatory_toc_workflow(pdf_path: str) -> Dict[str, Any]:
+    """필수 목차 트리 생성 워크플로우 - 반드시 사용"""
+    try:
+        # 1단계: PDF 텍스트 추출
+        extractor = PDFTextExtractor(pdf_path)
+        content = extractor.extract_text_by_page()
+        
+        # 2단계: 목차 페이지 식별
+        toc_pages = extractor.identify_toc_pages()
+        
+        # 3단계: 목차 트리 생성
+        parser = TOCParser()
+        toc_tree = parser.parse_toc_tree(content, toc_pages)
+        
+        # 4단계: 완전성 검증
+        pdf_page_count = extractor.get_total_pages()
+        completeness_validation = validate_toc_completeness(pdf_page_count, toc_tree)
+        
+        # 5단계: 검증 실패 시 재분석
+        if not completeness_validation["is_complete"]:
+            print(f"⚠️ 경고: {len(completeness_validation['missing_pages'])}개 페이지가 누락되었습니다.")
+            print(f"누락된 페이지: {completeness_validation['missing_pages']}")
+            # 재분석 로직 실행
+            toc_tree = parser.parse_toc_tree_enhanced(content, toc_pages)
+            completeness_validation = validate_toc_completeness(pdf_page_count, toc_tree)
+        
+        # 6단계: 마크다운 생성
+        markdown_generator = TOCMarkdownGenerator()
+        markdown_content = markdown_generator.generate_markdown(toc_tree)
+        
+        # 7단계: 최종 결과 반환
+        final_result = {
+            "toc_tree": toc_tree,
+            "completeness_validation": completeness_validation,
+            "markdown_content": markdown_content,
+            "total_pages": pdf_page_count,
+            "pages_in_tree": completeness_validation["total_pages_in_tree"],
+            "is_complete": completeness_validation["is_complete"]
+        }
+        
+        return final_result
+        
+    except Exception as e:
+        print(f"❌ 목차 트리 생성 중 오류 발생: {e}")
+        return {
+            "error": str(e),
+            "is_complete": False
+        }
+```
+
+### 4. 오류 방지 규칙 (MANDATORY)
+```python
+# 🚨 반드시 준수해야 할 목차 트리 오류 방지 규칙
+
+# 1. 모든 목차 트리 생성은 execute_mandatory_toc_workflow() 사용
+# 2. 생성된 트리는 반드시 validate_toc_completeness() 검증
+# 3. PDF 페이지 수와 트리 내 페이지 수가 일치해야 함
+# 4. 누락된 페이지가 있으면 즉시 재분석 수행
+# 5. 기타 항목(참고자료, 부록 등)도 반드시 트리에 포함
+# 6. 검증 실패 시 사용자에게 명확한 경고 메시지 출력
+
+def prevent_toc_errors(pdf_path: str) -> Dict[str, Any]:
+    """목차 트리 오류 방지 함수 - 반드시 사용"""
+    # 필수 워크플로우 실행
+    result = execute_mandatory_toc_workflow(pdf_path)
+    
+    # 검증 실패 시 자동 재분석
+    if not result.get("is_complete", False):
+        print("🔄 목차 트리 검증 실패로 인한 재분석을 시작합니다...")
+        # 재분석 로직
+        result = execute_mandatory_toc_workflow(pdf_path)
+    
+    return result
+```
+
+**🚨 CRITICAL: 47페이지 누락 사고와 같은 목차 트리 오류를 방지하기 위해 위의 모든 검증 규칙을 반드시 준수해야 합니다.**
+
+## 📊 목차 트리 계층 구조 규칙 (MANDATORY - NEW)
+
+### 1. 계층 구조 정의 (MANDATORY)
+```python
+class TOCHierarchyRules:
+    """목차 트리 계층 구조 규칙 - 반드시 준수"""
+    
+    # 계층 레벨 정의
+    HIERARCHY_LEVELS = {
+        "대분류": 0,    # 부문 (예: 토목부문, 건축부문)
+        "중분류": 1,    # 장 (예: 제1장, 제2장)
+        "소분류": 2,    # 절 (예: 1-1, 2-1)
+        "본문분류": 3,  # 조/항목 (예: 1-1-1, 2-1-1)
+        "세부분류": 4   # 세부항목 (예: 1-1-1-1, 2-1-1-1)
+    }
+    
+    # 들여쓰기 규칙 (공백 2개 단위)
+    INDENT_RULES = {
+        0: "",           # 대분류: 들여쓰기 없음
+        1: "  ",         # 중분류: 2칸 들여쓰기
+        2: "    ",       # 소분류: 4칸 들여쓰기
+        3: "      ",     # 본문분류: 6칸 들여쓰기
+        4: "        "    # 세부분류: 8칸 들여쓰기
+    }
+    
+    @classmethod
+    def get_hierarchy_level(cls, item_text: str) -> int:
+        """항목 텍스트로부터 계층 레벨 판단"""
+        # 부문 패턴 (대분류)
+        if re.match(r'^[가-힣]+부문$', item_text):
+            return 0
+        
+        # 장 패턴 (중분류)
+        if re.match(r'^제\d+장\s+', item_text):
+            return 1
+        
+        # 절 패턴 (소분류) - n-n 형태
+        if re.match(r'^\d+-\d+$', item_text.split()[0]):
+            return 2
+        
+        # 조/항목 패턴 (본문분류) - n-n-n 형태
+        if re.match(r'^\d+-\d+-\d+$', item_text.split()[0]):
+            return 3
+        
+        # 세부항목 패턴 (세부분류) - n-n-n-n 형태
+        if re.match(r'^\d+-\d+-\d+-\d+$', item_text.split()[0]):
+            return 4
+        
+        # 기본값: 본문분류
+        return 3
+    
+    @classmethod
+    def get_indent(cls, level: int) -> str:
+        """계층 레벨에 따른 들여쓰기 반환"""
+        return cls.INDENT_RULES.get(level, "      ")
+```
+
+### 2. 계층 구조 검증 규칙 (MANDATORY)
+```python
+def validate_hierarchy_structure(toc_tree: dict) -> Dict[str, Any]:
+    """계층 구조 검증 - 반드시 실행"""
+    validation_result = {
+        "is_valid": True,
+        "hierarchy_errors": [],
+        "indent_errors": [],
+        "level_consistency": True
+    }
+    
+    def validate_node(node, expected_level=0):
+        """노드 계층 구조 검증"""
+        current_level = node.get('level', 0)
+        
+        # 계층 레벨 일관성 검증
+        if current_level != expected_level:
+            validation_result["hierarchy_errors"].append({
+                "node": node.get('title', 'Unknown'),
+                "expected_level": expected_level,
+                "actual_level": current_level
+            })
+            validation_result["is_valid"] = False
+        
+        # 들여쓰기 검증
+        expected_indent = TOCHierarchyRules.get_indent(current_level)
+        actual_indent = node.get('indent', '')
+        if expected_indent != actual_indent:
+            validation_result["indent_errors"].append({
+                "node": node.get('title', 'Unknown'),
+                "expected_indent": expected_indent,
+                "actual_indent": actual_indent
+            })
+            validation_result["is_valid"] = False
+        
+        # 하위 노드 검증
+        for child in node.get('children', []):
+            validate_node(child, current_level + 1)
+    
+    # 루트 노드부터 검증 시작
+    for root_node in toc_tree.get('children', []):
+        validate_node(root_node, 0)
+    
+    return validation_result
+```
+
+### 3. 계층 구조 생성 규칙 (MANDATORY)
+```python
+def generate_hierarchical_toc(toc_items: List[Dict]) -> Dict[str, Any]:
+    """계층적 목차 트리 생성 - 반드시 사용"""
+    
+    def create_node(title: str, page: int, level: int) -> Dict:
+        """계층 노드 생성"""
+        return {
+            'title': title,
+            'page': page,
+            'level': level,
+            'indent': TOCHierarchyRules.get_indent(level),
+            'children': []
+        }
+    
+    def add_to_tree(tree: Dict, item: Dict):
+        """트리에 항목 추가"""
+        level = TOCHierarchyRules.get_hierarchy_level(item['title'])
+        node = create_node(item['title'], item['page'], level)
+        
+        # 적절한 부모 노드 찾기
+        current_level = level
+        parent = tree
+        
+        # 상위 레벨 노드 찾기
+        while current_level > 0 and parent.get('children'):
+            # 마지막 하위 노드가 같은 레벨이면 같은 부모에 추가
+            last_child = parent['children'][-1]
+            if last_child['level'] == level:
+                parent['children'].append(node)
+                return
+            
+            # 상위 레벨 노드 찾기
+            for child in reversed(parent['children']):
+                if child['level'] < level:
+                    add_to_tree(child, item)
+                    return
+            
+            current_level -= 1
+        
+        # 루트 레벨이면 직접 추가
+        if level == 0:
+            tree['children'].append(node)
+        else:
+            # 적절한 부모가 없으면 루트에 추가
+            tree['children'].append(node)
+    
+    # 트리 초기화
+    tree = {'children': []}
+    
+    # 모든 항목을 계층 구조로 추가
+    for item in toc_items:
+        add_to_tree(tree, item)
+    
+    return tree
+```
+
+### 4. 마크다운 생성 시 계층 구조 적용 (MANDATORY)
+```python
+def render_hierarchical_markdown(node: Dict, depth: int = 0) -> str:
+    """계층적 마크다운 생성 - 반드시 사용"""
+    md = ""
+    
+    # 들여쓰기 적용
+    indent = TOCHierarchyRules.get_indent(node['level'])
+    
+    # 노드 타입에 따른 출력 형식
+    if node['type'] == 'chapter':
+        md += f"{indent}- {node['title']} (p.{node['page']})\n"
+    elif node['type'] == 'other':
+        md += f"{indent}- {node['title']} (p.{node['page']})\n"
+    else:
+        md += f"{indent}- {node['number']} {node['title']} (p.{node['page']})\n"
+    
+    # 하위 노드 재귀 처리
+    for child in node.get('children', []):
+        md += render_hierarchical_markdown(child, depth + 1)
+    
+    return md
+```
+
+### 5. 계층 구조 오류 방지 규칙 (MANDATORY)
+```python
+# 🚨 반드시 준수해야 할 계층 구조 오류 방지 규칙
+
+# 1. 모든 목차 항목은 반드시 적절한 계층 레벨을 가져야 함
+# 2. 들여쓰기는 계층 레벨에 따라 정확히 적용되어야 함
+# 3. 상위 항목 없이 하위 항목이 독립적으로 존재하면 안 됨
+# 4. 계층 구조 검증은 반드시 실행되어야 함
+# 5. 검증 실패 시 자동으로 계층 구조 재구성해야 함
+
+def prevent_hierarchy_errors(toc_tree: dict) -> dict:
+    """계층 구조 오류 방지 함수 - 반드시 사용"""
+    # 계층 구조 검증
+    validation = validate_hierarchy_structure(toc_tree)
+    
+    # 검증 실패 시 재구성
+    if not validation["is_valid"]:
+        print("⚠️ 경고: 계층 구조 오류가 발견되었습니다.")
+        print(f"계층 오류: {len(validation['hierarchy_errors'])}개")
+        print(f"들여쓰기 오류: {len(validation['indent_errors'])}개")
+        
+        # 계층 구조 재구성
+        toc_tree = regenerate_hierarchical_structure(toc_tree)
+        
+        # 재검증
+        validation = validate_hierarchy_structure(toc_tree)
+    
+    return toc_tree
+```
+
+**🚨 CRITICAL: 계층 구조 오류를 방지하기 위해 위의 모든 계층 구조 규칙을 반드시 준수해야 합니다.**
+
+## 🏗️ Architecture Patterns
+
+### 1. Dependency Injection Pattern
+```python
+class PDFProcessor:
+    def __init__(self, use_lookup_table: bool = True):
+        self.classifier = ContentClassifier()
+        self.lookup_table = LookupTable() if use_lookup_table else None
+```
+
+### 2. Configuration Management
+```python
+# Always use config/settings.py for all configuration
+from config.settings import (
+    INPUT_DIR, 
+    OUTPUT_DIR, 
+    ensure_directories,
+    check_environment
+)
+```
+
+### 3. Modular Design
+- **classifier/**: PDF classification logic
+- **converter/**: PDF conversion tools  
+- **utils/**: Utility functions
+- **ect/**: Experimental/temporary tools
+
+## 🔧 Cross-Platform Development Guidelines
+
+### 1. Environment Detection
+```python
+import platform
+import sys
+
+def is_windows() -> bool:
+    """Windows 플랫폼 확인"""
+    return platform.system().lower() == "windows"
+
+def is_macos() -> bool:
+    """macOS 플랫폼 확인"""
+    return platform.system().lower() == "darwin"
+
+def is_linux() -> bool:
+    """Linux 플랫폼 확인"""
+    return platform.system().lower() == "linux"
+```
+
+### 2. File System Operations
+```python
+def create_directories_safely(directory_paths: List[str]) -> bool:
+    """안전한 디렉토리 생성"""
+    try:
+        for path in directory_paths:
+            Path(path).mkdir(parents=True, exist_ok=True)
+        return True
+    except Exception as e:
+        print(f"디렉토리 생성 실패: {e}")
+        return False
+
+def copy_files_cross_platform(source: Path, destination: Path) -> bool:
+    """크로스 플랫폼 파일 복사"""
+    try:
+        import shutil
+        shutil.copy2(source, destination)
+        return True
+    except Exception as e:
+        print(f"파일 복사 실패: {e}")
+        return False
+```
+
+### 3. Process and Subprocess Handling
+```python
+import subprocess
+import sys
+
+def run_command_cross_platform(command: List[str]) -> subprocess.CompletedProcess:
+    """크로스 플랫폼 명령어 실행"""
+    try:
+        result = subprocess.run(
+            command,
+            capture_output=True,
+            text=True,
+            encoding='utf-8',
+            check=True
+        )
+        return result
+    except subprocess.CalledProcessError as e:
+        print(f"명령어 실행 실패: {e}")
+        return e
+    except FileNotFoundError:
+        print(f"명령어를 찾을 수 없습니다: {command[0]}")
+        return None
+```
+
+### 4. Text Encoding and Line Endings
+```python
+def read_text_file_cross_platform(file_path: Path) -> str:
+    """크로스 플랫폼 텍스트 파일 읽기"""
+    encodings = ['utf-8', 'utf-8-sig', 'cp949', 'euc-kr']
+    
+    for encoding in encodings:
+        try:
+            with open(file_path, 'r', encoding=encoding, newline='') as f:
+                return f.read()
+        except UnicodeDecodeError:
+            continue
+    
+    raise UnicodeDecodeError(f"지원되는 인코딩으로 파일을 읽을 수 없습니다: {file_path}")
+
+def write_text_file_cross_platform(file_path: Path, content: str) -> bool:
+    """크로스 플랫폼 텍스트 파일 쓰기"""
+    try:
+        with open(file_path, 'w', encoding='utf-8', newline='') as f:
+            f.write(content)
+        return True
+    except Exception as e:
+        print(f"파일 쓰기 실패: {e}")
+        return False
+```
+
+### 5. Temporary File Handling
+```python
+import tempfile
+from contextlib import contextmanager
+
+@contextmanager
+def create_temp_file_cross_platform(suffix: str = ".tmp") -> Path:
+    """크로스 플랫폼 임시 파일 생성"""
+    temp_file = None
+    try:
+        temp_file = Path(tempfile.mktemp(suffix=suffix))
+        yield temp_file
+    finally:
+        if temp_file and temp_file.exists():
+            temp_file.unlink()
+
+def cleanup_temp_files(temp_dir: Path) -> None:
+    """임시 파일 정리"""
+    try:
+        for temp_file in temp_dir.glob("*.tmp"):
+            temp_file.unlink()
+    except Exception as e:
+        print(f"임시 파일 정리 실패: {e}")
+```
+
+## 📊 Document Analysis Best Practices
+
+### 1. Multi-Step Analysis Process
+```python
+def comprehensive_document_analysis(file_path: Path) -> Dict[str, Any]:
+    """종합적인 문서 분석"""
+    results = {
+        "file_info": {},
+        "structure": {},
+        "content_analysis": {},
+        "validation": {},
+        "recommendations": []
+    }
+    
+    # 1단계: 파일 정보 수집
+    results["file_info"] = collect_file_info(file_path)
+    
+    # 2단계: 구조 분석
+    results["structure"] = analyze_document_structure(file_path)
+    
+    # 3단계: 내용 분석
+    results["content_analysis"] = analyze_content(file_path)
+    
+    # 4단계: 검증
+    results["validation"] = validate_analysis_results(results)
+    
+    # 5단계: 권장사항 생성
+    results["recommendations"] = generate_recommendations(results)
+    
+    return results
+```
+
+### 2. Pattern Recognition
+```python
+def identify_document_patterns(content: str) -> Dict[str, List[str]]:
+    """문서 패턴 식별"""
+    patterns = {
+        "sections": [],
+        "chapters": [],
+        "subsections": [],
+        "page_breaks": [],
+        "headers": [],
+        "footers": []
+    }
+    
+    # 정규식 패턴 정의
+    import re
+    
+    # 부문 패턴
+    section_pattern = r"([가-힣]+부문)"
+    patterns["sections"] = re.findall(section_pattern, content)
+    
+    # 장 패턴
+    chapter_pattern = r"(제[0-9]+장\s*[가-힣]+)"
+    patterns["chapters"] = re.findall(chapter_pattern, content)
+    
+    # 절 패턴
+    subsection_pattern = r"([0-9]+-[0-9]+[가-힣]*)"
+    patterns["subsections"] = re.findall(subsection_pattern, content)
+    
+    # 페이지 구분 패턴
+    page_pattern = r"(=== [0-9]+페이지 ===)"
+    patterns["page_breaks"] = re.findall(page_pattern, content)
+    
+    return patterns
+```
+
+### 3. Content Validation
+```python
+def validate_content_analysis(analysis_results: Dict[str, Any]) -> Dict[str, bool]:
+    """내용 분석 검증"""
+    validation = {
+        "structure_complete": False,
+        "content_consistent": False,
+        "encoding_valid": False,
+        "patterns_reasonable": False
+    }
+    
+    # 구조 완성도 검증
+    if analysis_results.get("structure", {}).get("sections"):
+        validation["structure_complete"] = True
+    
+    # 내용 일관성 검증
+    content = analysis_results.get("content", "")
+    if content and len(content) > 100:
+        validation["content_consistent"] = True
+    
+    # 인코딩 검증
+    try:
+        content.encode('utf-8')
+        validation["encoding_valid"] = True
+    except UnicodeEncodeError:
+        pass
+    
+    # 패턴 합리성 검증
+    patterns = analysis_results.get("patterns", {})
+    if patterns and any(len(v) > 0 for v in patterns.values()):
+        validation["patterns_reasonable"] = True
+    
+    return validation
+```
+
+## 🎯 Quality Assurance
+
+### 1. Code Review Checklist
+- [ ] 모든 함수에 타입 힌트 포함
+- [ ] 한국어 오류 메시지 사용
+- [ ] 크로스 플랫폼 호환성 확인
+- [ ] 문서 분석 패턴 적용
+- [ ] 검증 로직 포함
+- [ ] 예외 처리 완료
+
+### 2. Testing Requirements
+- [ ] Windows 환경에서 테스트
+- [ ] macOS/Linux 환경에서 테스트
+- [ ] 한국어 문서로 테스트
+- [ ] 오류 상황 테스트
+- [ ] 성능 테스트
+
+### 3. Documentation Standards
+- [ ] 모든 모듈에 한국어 설명
+- [ ] 사용 예제 포함
+- [ ] 오류 해결 방법 문서화
+- [ ] 크로스 플랫폼 가이드 포함
+
+## 🚨 CRITICAL DOCUMENT ANALYSIS VALIDATION RULES (MANDATORY - NEW)
+
+### 1. Section Completeness Validation (MANDATORY)
+```python
+def validate_section_completeness(content: str) -> Dict[str, Any]:
+    """부문 완전성 검증 - 반드시 실행"""
+    required_sections = ["공통부문", "토목부문", "건축부문", "기계설비부문", "유지관리부문"]
+    validation_result = {
+        "is_complete": True,
+        "missing_sections": [],
+        "found_sections": [],
+        "section_positions": {},
+        "validation_errors": []
+    }
+    
+    # 각 부문 검색 및 위치 기록
+    for section in required_sections:
+        section_pos = content.find(section)
+        if section_pos != -1:
+            validation_result["found_sections"].append(section)
+            validation_result["section_positions"][section] = section_pos
+        else:
+            validation_result["missing_sections"].append(section)
+            validation_result["is_complete"] = False
+    
+    # 부문 순서 검증
+    if len(validation_result["found_sections"]) > 1:
+        positions = validation_result["section_positions"]
+        sorted_sections = sorted(positions.items(), key=lambda x: x[1])
+        validation_result["section_order"] = [section for section, _ in sorted_sections]
+    
+    return validation_result
+```
+
+### 2. Cross-Reference Validation (MANDATORY)
+```python
+def validate_cross_references(content: str, analysis_results: Dict[str, Any]) -> Dict[str, Any]:
+    """크로스 참조 검증 - 반드시 실행"""
+    validation_result = {
+        "cross_references_valid": True,
+        "inconsistencies": [],
+        "recommendations": []
+    }
+    
+    # 부문 제목과 장 제목의 일관성 검증
+    sections = analysis_results.get("sections", {})
+    patterns = analysis_results.get("patterns", {})
+    
+    for section_name, section_data in sections.items():
+        if section_data.get("start") is not None:
+            # 해당 부문의 장들이 실제로 그 부문에 속하는지 확인
+            section_start = section_data["start"]
+            section_end = section_data.get("end")
+            
+            if section_end:
+                section_content = content[section_start:section_end]
+                chapters_in_section = patterns.get("chapters", [])
+                
+                # 부문별 장 분류 검증
+                for chapter in chapters_in_section:
+                    if chapter not in section_content:
+                        validation_result["inconsistencies"].append(
+                            f"장 '{chapter}'이 부문 '{section_name}'에 속하지 않습니다"
+                        )
+                        validation_result["cross_references_valid"] = False
+    
+    return validation_result
+```
+
+### 3. Analysis Report Validation (MANDATORY)
+```python
+def validate_analysis_report(report_content: str, original_analysis: Dict[str, Any]) -> Dict[str, Any]:
+    """분석 보고서 검증 - 반드시 실행"""
+    validation_result = {
+        "report_complete": True,
+        "missing_elements": [],
+        "inconsistencies": [],
+        "recommendations": []
+    }
+    
+    # 필수 섹션 존재 여부 확인
+    required_report_sections = [
+        "분석 개요", "문서 구조 분석", "부문별 상세 분석", 
+        "검증 결과", "권장사항"
+    ]
+    
+    for section in required_report_sections:
+        if section not in report_content:
+            validation_result["missing_elements"].append(section)
+            validation_result["report_complete"] = False
+    
+    # 분석 결과와 보고서 내용 일치성 확인
+    sections = original_analysis.get("sections", {})
+    for section_name in sections.keys():
+        if section_name not in report_content:
+            validation_result["inconsistencies"].append(
+                f"부문 '{section_name}'이 보고서에 누락되었습니다"
+            )
+            validation_result["report_complete"] = False
+    
+    return validation_result
+```
+
+### 4. Mandatory Analysis Workflow (MANDATORY)
+```python
+def execute_mandatory_analysis_workflow(file_path: Path) -> Dict[str, Any]:
+    """필수 분석 워크플로우 - 반드시 사용"""
+    try:
+        # 1단계: 파일 내용 로드
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+        
+        # 2단계: 기본 분석 수행
+        analyzer = DocumentAnalyzer(file_path)
+        analysis_results = analyzer.analyze_document_structure()
+        
+        # 3단계: 부문 완전성 검증
+        section_validation = validate_section_completeness(content)
+        
+        # 4단계: 크로스 참조 검증
+        cross_ref_validation = validate_cross_references(content, analysis_results)
+        
+        # 5단계: 보고서 생성
+        report_generator = AnalysisReportGenerator(analysis_results, section_validation)
+        comprehensive_report = report_generator.generate_comprehensive_report()
+        
+        # 6단계: 보고서 검증
+        report_validation = validate_analysis_report(comprehensive_report, analysis_results)
+        
+        # 7단계: 최종 결과 반환
+        final_result = {
+            "analysis_results": analysis_results,
+            "section_validation": section_validation,
+            "cross_ref_validation": cross_ref_validation,
+            "report_validation": report_validation,
+            "comprehensive_report": comprehensive_report,
+            "is_valid": all([
+                section_validation["is_complete"],
+                cross_ref_validation["cross_references_valid"],
+                report_validation["report_complete"]
+            ])
+        }
+        
+        # 8단계: 검증 실패 시 경고 출력
+        if not final_result["is_valid"]:
+            print("⚠️ 경고: 분석 검증에 실패했습니다. 결과를 다시 확인하세요.")
+            if section_validation["missing_sections"]:
+                print(f"누락된 부문: {', '.join(section_validation['missing_sections'])}")
+            if cross_ref_validation["inconsistencies"]:
+                print(f"일관성 오류: {len(cross_ref_validation['inconsistencies'])}개")
+            if report_validation["missing_elements"]:
+                print(f"보고서 누락 요소: {', '.join(report_validation['missing_elements'])}")
+        
+        return final_result
+        
+    except Exception as e:
+        print(f"❌ 분석 워크플로우 실행 중 오류 발생: {e}")
+        return {
+            "error": str(e),
+            "is_valid": False
+        }
+```
+
+### 5. Error Prevention Rules (MANDATORY)
+```python
+# 🚨 반드시 준수해야 할 오류 방지 규칙
+
+# 1. 모든 문서 분석은 execute_mandatory_analysis_workflow() 사용
+# 2. 분석 결과는 반드시 validate_section_completeness() 검증
+# 3. 보고서 생성 후 validate_analysis_report() 검증
+# 4. 누락된 부문이 있으면 즉시 재분석 수행
+# 5. 검증 실패 시 사용자에게 명확한 경고 메시지 출력
+
+def prevent_analysis_errors(file_path: Path) -> Dict[str, Any]:
+    """분석 오류 방지 함수 - 반드시 사용"""
+    # 필수 워크플로우 실행
+    result = execute_mandatory_analysis_workflow(file_path)
+    
+    # 검증 실패 시 자동 재분석
+    if not result.get("is_valid", False):
+        print("🔄 검증 실패로 인한 재분석을 시작합니다...")
+        # 재분석 로직
+        result = execute_mandatory_analysis_workflow(file_path)
+    
+    return result
+```
+
+**🚨 CRITICAL: 건축부문 누락 사고와 같은 분석 오류를 방지하기 위해 위의 모든 검증 규칙을 반드시 준수해야 합니다.**
+
+### 9-1. 가설공사 분류 규칙 (MANDATORY)
+```python
+# "제2장 가설공사"는 반드시 "공통부문"에 포함시켜야 한다.
+# 목차 트리 생성 및 PDF 분할 시 아래 규칙을 우선 적용할 것.
+
+SPECIAL_SECTION_MAPPING = {
+    "제2장 가설공사": "공통부문"
+}
+
+def get_section_bumun(chapter_title: str) -> str:
+    """특정 장의 부문을 강제 지정"""
+    if chapter_title in SPECIAL_SECTION_MAPPING:
+        return SPECIAL_SECTION_MAPPING[chapter_title]
+    # 기본 분류 로직...
+```
+**ALWAYS** check for special section mapping before default classification.
+**NEVER** classify "가설공사" as 토목부문.
+
+
+
+
+
+
+
+
+
+
+
+
+
